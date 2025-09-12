@@ -1,4 +1,8 @@
-const { SlashCommandBuilder, AttachmentBuilder, InteractionContextType } = require("discord.js");
+const {
+    SlashCommandBuilder,
+    AttachmentBuilder,
+    InteractionContextType,
+} = require("discord.js");
 const { calculateLevel, xpForNextLevel } = require("../../function");
 const { createCanvas, loadImage } = require("canvas");
 const { QuickDB } = require("quick.db");

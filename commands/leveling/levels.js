@@ -1,4 +1,8 @@
-const { SlashCommandBuilder, AttachmentBuilder, InteractionContextType } = require("discord.js");
+const {
+    SlashCommandBuilder,
+    AttachmentBuilder,
+    InteractionContextType,
+} = require("discord.js");
 const { QuickDB } = require("quick.db");
 const { createCanvas, loadImage } = require("canvas");
 const { calculateLevel, xpForNextLevel } = require("../../function");
@@ -6,7 +10,7 @@ const db = new QuickDB();
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName("leaderboard")
+        .setName("levels")
         .setDescription("Lihat 10 besar leaderboard leveling di server ini")
         .setContexts(InteractionContextType.Guild),
     async execute(interaction) {
