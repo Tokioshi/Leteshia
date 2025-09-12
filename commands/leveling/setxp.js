@@ -24,9 +24,31 @@ module.exports = {
                 .setMinValue(0)
         )
         .setContexts(InteractionContextType.Guild),
-
     async execute(interaction) {
-        if (interaction.user.id !== interaction.client.config.developer.tokioshy) {
+        if (
+            interaction.channel.id !== interaction.client.config.channel.level
+        ) {
+            return interaction.reply({
+                embeds: [
+                    new EmbedBuilder()
+                        .setTitle("Channel Tidak Diizinkan")
+                        .setColor(interaction.client.config.embed.fail)
+                        .setDescription(
+                            `Maaf, perintah ini hanya dapat digunakan di channel yang ditentukan <#${interaction.client.config.channel.level}>.`
+                        )
+                        .setFooter({
+                            text: `Perintah Terbatas`,
+                            iconURL: interaction.client.user.avatarURL(),
+                        })
+                        .setTimestamp(),
+                ],
+                flags: MessageFlags.Ephemeral,
+            });
+        }
+
+        if (
+            interaction.user.id !== interaction.client.config.developer.tokioshy
+        ) {
             const embed = new EmbedBuilder()
                 .setTitle("❌ Access Denied")
                 .setDescription(
@@ -35,7 +57,10 @@ module.exports = {
                 .setColor("#ff0000")
                 .setTimestamp();
 
-            return interaction.reply({ embeds: [embed], flags: [MessageFlags.Ephemeral] });
+            return interaction.reply({
+                embeds: [embed],
+                flags: [MessageFlags.Ephemeral],
+            });
         }
 
         await interaction.deferReply();
