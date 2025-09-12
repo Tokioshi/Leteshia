@@ -3,6 +3,7 @@ const {
     AttachmentBuilder,
     InteractionContextType,
     EmbedBuilder,
+    MessageFlags
 } = require("discord.js");
 const { QuickDB } = require("quick.db");
 const { createCanvas, loadImage } = require("canvas");

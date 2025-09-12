@@ -2,6 +2,8 @@ const {
     SlashCommandBuilder,
     AttachmentBuilder,
     InteractionContextType,
+    MessageFlags,
+    EmbedBuilder
 } = require("discord.js");
 const { getUserXP } = require("../../function");
 const { createCanvas, loadImage } = require("canvas");
