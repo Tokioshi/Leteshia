@@ -1,7 +1,7 @@
 const { Events, EmbedBuilder, MessageFlags } = require("discord.js");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
-const { calculateLevel } = require("../../function");
+const { calculateLevel, xpForNextLevel } = require("../../function");
 
 module.exports = {
     name: Events.MessageCreate,
@@ -158,23 +158,54 @@ module.exports = {
             }
 
             // Leveling
+            const cooldowns = new Map();
+            const COOLDOWN_TIME = 60 * 1000;
+
             const userId = message.author.id;
             const guildId = message.guild.id;
+            const key = `${guildId}_${userId}`;
 
-            let userXP = await db.get(`xp_${guildId}_${userId}`) || 0;
+            const now = Date.now();
+            if (
+                cooldowns.has(key) &&
+                now - cooldowns.get(key) < COOLDOWN_TIME
+            ) {
+                return;
+            }
+            cooldowns.set(key, now);
+
+            let userXP = (await db.get(`xp_${key}`)) || 0;
             let userLevel = calculateLevel(userXP);
 
             const xpToAdd = Math.floor(Math.random() * 11) + 15;
             userXP += xpToAdd;
+            await db.set(`xp_${key}`, userXP);
 
             const newLevel = calculateLevel(userXP);
 
-            await db.set(`xp_${guildId}_${userId}`, userXP);
-
             if (newLevel > userLevel) {
-                message.channel.send(
-                    `${message.author} telah naik ke level ${newLevel}! 🎉`
-                );
+                const embed = new EmbedBuilder()
+                    .setColor("Random")
+                    .setTitle("🎉 Level Up!")
+                    .setDescription(
+                        `${message.author} telah naik ke **Level ${newLevel}**!`
+                    )
+                    .addFields(
+                        { name: "Total XP", value: `${userXP}`, inline: true },
+                        {
+                            name: "Next Level",
+                            value: `${
+                                xpForNextLevel(newLevel) - userXP
+                            } XP lagi`,
+                            inline: true,
+                        }
+                    )
+                    .setThumbnail(
+                        message.author.displayAvatarURL({ forceStatic: true })
+                    )
+                    .setTimestamp();
+
+                message.channel.send({ embeds: [embed] });
             }
         }
     },
