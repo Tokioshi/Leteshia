@@ -45,7 +45,7 @@ async function sampleProcessCpu(ms = 1000) {
         await new Promise((resolve) => setTimeout(resolve, ms));
 
         const elapUsage = process.cpuUsage(startUsage);
-        const elapTime = Number(process.hrtime.bigint() - startTime) / 1000000; // Convert to ms
+        const elapTime = Number(process.hrtime.bigint() - startTime) / 1000000;
 
         const cpuMs = (elapUsage.user + elapUsage.system) / 1000;
         return Math.min(100, (cpuMs / elapTime) * 100).toFixed(1);
@@ -90,7 +90,7 @@ async function getDetailedBotStats(client) {
     };
 
     try {
-        stats.voiceConnections = client.voice?.connections?.size || 0;
+        stats.voiceConnections = client.riffy.players.size || 0;
     } catch {
         stats.voiceConnections = 0;
     }
