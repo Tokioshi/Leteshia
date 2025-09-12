@@ -2,6 +2,7 @@ const { Events, EmbedBuilder, MessageFlags } = require("discord.js");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
 const { calculateLevel, xpForNextLevel } = require("../../function");
+const cooldowns = new Map();
 
 module.exports = {
     name: Events.MessageCreate,
@@ -158,8 +159,7 @@ module.exports = {
             }
 
             // Leveling
-            const cooldowns = new Map();
-            const COOLDOWN_TIME = 60 * 1000;
+            const COOLDOWN_TIME = 30 * 1000;
 
             const userId = message.author.id;
             const guildId = message.guild.id;
