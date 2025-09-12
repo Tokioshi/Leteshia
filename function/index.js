@@ -2,12 +2,10 @@ const { EmbedBuilder } = require("discord.js");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
 
-// XP System Constants
 const COOLDOWN_TIME = 30 * 1000;
 const MIN_XP_GAIN = 15;
 const MAX_XP_GAIN = 25;
 
-// Cooldowns Map - shared across all functions
 const cooldowns = new Map();
 
 function capital(string) {
@@ -23,14 +21,12 @@ function xpForNextLevel(level) {
 }
 
 async function handleXPGain(message) {
-    // Early return if message is from a bot or not in a guild
     if (message.author.bot || !message.guild) return;
 
     const userId = message.author.id;
     const guildId = message.guild.id;
     const key = `${guildId}_${userId}`;
 
-    // Check cooldown
     const now = Date.now();
     const lastActivity = cooldowns.get(key);
     if (lastActivity && now - lastActivity < COOLDOWN_TIME) {
@@ -121,7 +117,6 @@ function cleanupOldCooldowns() {
     }
 }
 
-// Optional: Get user XP data (useful for commands)
 async function getUserXP(userId, guildId) {
     const key = `${guildId}_${userId}`;
     const userXP = (await db.get(`xp_${key}`)) || 0;
@@ -137,13 +132,11 @@ async function getUserXP(userId, guildId) {
     };
 }
 
-// Optional: Set user XP (useful for admin commands)
 async function setUserXP(userId, guildId, xp) {
     const key = `${guildId}_${userId}`;
     await db.set(`xp_${key}`, Math.max(0, xp));
 }
 
-// Optional: Add XP to user (useful for bonus XP commands)
 async function addUserXP(userId, guildId, xpToAdd) {
     const key = `${guildId}_${userId}`;
     const currentXP = (await db.get(`xp_${key}`)) || 0;
