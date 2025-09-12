@@ -2,6 +2,7 @@ const {
     SlashCommandBuilder,
     AttachmentBuilder,
     InteractionContextType,
+    EmbedBuilder,
 } = require("discord.js");
 const { QuickDB } = require("quick.db");
 const { createCanvas, loadImage } = require("canvas");
@@ -69,10 +70,10 @@ module.exports = {
                 const avatar = await loadImage(avatarURL);
                 ctx.save();
                 ctx.beginPath();
-                ctx.arc(70, y + rowHeight / 2, 25, 0, Math.PI * 2);
+                ctx.arc(73, y + rowHeight / 2, 25, 0, Math.PI * 2);
                 ctx.closePath();
                 ctx.clip();
-                ctx.drawImage(avatar, 45, y + rowHeight / 2 - 25, 50, 50);
+                ctx.drawImage(avatar, 48, y + rowHeight / 2 - 25, 50, 50);
                 ctx.restore();
             }
 
@@ -105,6 +106,11 @@ module.exports = {
         const buffer = canvas.toBuffer("image/png");
         const file = new AttachmentBuilder(buffer, { name: "leaderboard.png" });
 
-        await interaction.editReply({ files: [file] });
+        const embed = new EmbedBuilder()
+            .setTitle(`${interaction.guild.name}'s xp leaderboard`)
+            .setColor(interaction.client.config.embed.default)
+            .setImage(`attachment://${file.name}`);
+
+        await interaction.editReply({ embeds: [embed], files: [file] });
     },
 };
