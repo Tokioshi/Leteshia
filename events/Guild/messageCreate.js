@@ -1,8 +1,9 @@
+const { handleXPGain, cleanupOldCooldowns } = require("../../function");
 const { Events, EmbedBuilder, MessageFlags } = require("discord.js");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
-const { calculateLevel, xpForNextLevel } = require("../../function");
-const cooldowns = new Map();
+
+setInterval(cleanupOldCooldowns, 10 * 60 * 1000);
 
 module.exports = {
     name: Events.MessageCreate,
@@ -158,55 +159,7 @@ module.exports = {
                 }
             }
 
-            // Leveling
-            const COOLDOWN_TIME = 30 * 1000;
-
-            const userId = message.author.id;
-            const guildId = message.guild.id;
-            const key = `${guildId}_${userId}`;
-
-            const now = Date.now();
-            if (
-                cooldowns.has(key) &&
-                now - cooldowns.get(key) < COOLDOWN_TIME
-            ) {
-                return;
-            }
-            cooldowns.set(key, now);
-
-            let userXP = (await db.get(`xp_${key}`)) || 0;
-            let userLevel = calculateLevel(userXP);
-
-            const xpToAdd = Math.floor(Math.random() * 11) + 15;
-            userXP += xpToAdd;
-            await db.set(`xp_${key}`, userXP);
-
-            const newLevel = calculateLevel(userXP);
-
-            if (newLevel > userLevel) {
-                const embed = new EmbedBuilder()
-                    .setColor("Random")
-                    .setTitle("🎉 Level Up!")
-                    .setDescription(
-                        `${message.author} telah naik ke **Level ${newLevel}**!`
-                    )
-                    .addFields(
-                        { name: "Total XP", value: `${userXP}`, inline: true },
-                        {
-                            name: "Next Level",
-                            value: `${
-                                xpForNextLevel(newLevel) - userXP
-                            } XP lagi`,
-                            inline: true,
-                        }
-                    )
-                    .setThumbnail(
-                        message.author.displayAvatarURL({ forceStatic: true })
-                    )
-                    .setTimestamp();
-
-                message.channel.send({ embeds: [embed] });
-            }
+            await handleXPGain(message);
         }
     },
 };

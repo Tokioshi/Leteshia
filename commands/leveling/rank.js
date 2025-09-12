@@ -231,7 +231,6 @@ module.exports = {
         );
         ctx.textAlign = "left";
 
-        // Rank position (optional - you can add this if you have rank data)
         ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
         ctx.font = "16px Arial";
         ctx.textAlign = "right";
