@@ -3,15 +3,13 @@ const {
     AttachmentBuilder,
     InteractionContextType,
 } = require("discord.js");
-const { calculateLevel, xpForNextLevel } = require("../../function");
+const { getUserXP } = require("../../function");
 const { createCanvas, loadImage } = require("canvas");
-const { QuickDB } = require("quick.db");
-const db = new QuickDB();
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("rank")
-        .setDescription("See you current leveling rank system")
+        .setDescription("See your current leveling rank system")
         .setContexts(InteractionContextType.Guild),
     async execute(interaction) {
         await interaction.deferReply();
@@ -19,8 +17,13 @@ module.exports = {
         const userId = interaction.user.id;
         const guildId = interaction.guild.id;
 
-        const userXP = (await db.get(`xp_${guildId}_${userId}`)) || 0;
-        const userLevel = calculateLevel(userXP);
+        const userData = await getUserXP(userId, guildId);
+        const {
+            xp: userXP,
+            level: userLevel,
+            xpForNext: nextLevelXP,
+            xpUntilNext,
+        } = userData;
 
         const canvas = createCanvas(800, 250);
         const ctx = canvas.getContext("2d");
@@ -159,8 +162,7 @@ module.exports = {
         );
         ctx.textAlign = "left";
 
-        const nextLevelXP = xpForNextLevel(userLevel);
-        const prevLevelXP = xpForNextLevel(userLevel - 1);
+        const prevLevelXP = userLevel > 0 ? Math.pow(userLevel, 2) * 100 : 0;
         const progress = userXP - prevLevelXP;
         const required = nextLevelXP - prevLevelXP;
 

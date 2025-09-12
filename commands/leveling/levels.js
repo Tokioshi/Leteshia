@@ -6,7 +6,7 @@ const {
 } = require("discord.js");
 const { QuickDB } = require("quick.db");
 const { createCanvas, loadImage } = require("canvas");
-const { calculateLevel, xpForNextLevel } = require("../../function");
+const { getUserXP, xpForNextLevel } = require("../../function");
 const db = new QuickDB();
 
 module.exports = {
@@ -27,12 +27,25 @@ module.exports = {
                 return {
                     userId,
                     xp: entry.value,
-                    level: calculateLevel(entry.value),
+                    level: getUserXP(userId, guildId).then(
+                        (data) => data.level
+                    ),
                 };
             });
 
         guildData.sort((a, b) => b.xp - a.xp);
         const top10 = guildData.slice(0, 10);
+
+        const resolvedTop10 = await Promise.all(
+            top10.map(async (entry) => {
+                const userData = await getUserXP(entry.userId, guildId);
+                return {
+                    userId: entry.userId,
+                    xp: userData.xp,
+                    level: userData.level,
+                };
+            })
+        );
 
         const canvas = createCanvas(680, 745);
         const ctx = canvas.getContext("2d");
@@ -45,8 +58,8 @@ module.exports = {
         ctx.textBaseline = "middle";
 
         const rowHeight = 70;
-        for (let i = 0; i < top10.length; i++) {
-            const entry = top10[i];
+        for (let i = 0; i < resolvedTop10.length; i++) {
+            const entry = resolvedTop10[i];
             const member = await interaction.guild.members
                 .fetch(entry.userId)
                 .catch(() => null);
@@ -107,7 +120,7 @@ module.exports = {
         const file = new AttachmentBuilder(buffer, { name: "leaderboard.png" });
 
         const embed = new EmbedBuilder()
-            .setTitle(`${interaction.guild.name}'s xp leaderboard`)
+            .setTitle(`${interaction.guild.name}'s XP Leaderboard`)
             .setColor(interaction.client.config.embed.default)
             .setImage(`attachment://${file.name}`);
 
