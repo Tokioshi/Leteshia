@@ -4,6 +4,7 @@ const {
     ActivityType,
     Collection,
     Partials,
+    EmbedBuilder,
 } = require("discord.js");
 const chalk = require("chalk");
 
@@ -77,6 +78,38 @@ class Bot extends Client {
             chalk.white("Shutting down bot...")
         );
         try {
+            this.channels.cache.get(this.config.channel.logs).send({
+                embeds: [
+                    new EmbedBuilder()
+                        .setAuthor({
+                            name: `${this.user.username} is shutting down`,
+                            iconURL: this.user.displayAvatarURL({
+                                extension: "png",
+                                size: 512,
+                            }),
+                        })
+                        .setColor(this.config.embed.fail)
+                        .setTitle("System Shutdown Initiated")
+                        .setDescription(
+                            `The bot is beginning the shutdown process. This can happen for several reasons, including a scheduled restart or a manual command from a developer.\n\nPlease be aware that the bot will be unavailable for a few moments.`
+                        )
+                        .addFields(
+                            {
+                                name: "Status",
+                                value: "Preparing to go offline...",
+                                inline: true,
+                            },
+                            {
+                                name: "Timestamp",
+                                value: `<t:${Math.floor(Date.now() / 1000)}:R>`,
+                                inline: true,
+                            }
+                        )
+                        .setFooter({ text: "System Notification" })
+                        .setTimestamp(),
+                ],
+            });
+
             await this.destroy();
             process.exit(0);
         } catch (error) {
