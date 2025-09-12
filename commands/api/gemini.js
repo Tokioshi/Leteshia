@@ -6,9 +6,6 @@ const {
 } = require("discord.js");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-const genAI = new GoogleGenerativeAI("AIzaSyDkHPw_ed8epmnI5QNmkQgrrXz0hqCbJxg");
-const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("gemini")
@@ -41,6 +38,11 @@ module.exports = {
                 flags: MessageFlags.Ephemeral,
             });
         }
+
+        const genAI = new GoogleGenerativeAI(
+            interaction.client.config.api.gemini
+        );
+        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
         const prompt = interaction.options.getString("prompt");
 
