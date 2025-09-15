@@ -53,6 +53,11 @@ class Bot extends Client {
         }
     }
 
+    reloadConfig() {
+        delete require.cache[require.resolve("./config")];
+        this.config = require("./config");
+    }
+
     loadHandlers() {
         try {
             require("./handler/index")(this);
