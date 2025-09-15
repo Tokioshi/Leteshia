@@ -55,12 +55,7 @@ module.exports = {
                     value: `\`${formatUptime(process.uptime() * 1000)}\``,
                     inline: true,
                 }
-            )
-            .setFooter({
-                text: "It came from GitHub!",
-                iconURL: interaction.user.displayAvatarURL({ size: 512 }),
-            })
-            .setTimestamp();
+            );
 
         await interaction.editReply({ embeds: [embed] });
     },
