@@ -53,6 +53,7 @@ module.exports = async (client) => {
             const command = require(filePath);
 
             if ("data" in command && "execute" in command) {
+                command.path = filePath;
                 client.commands.set(command.data.name, command);
             } else {
                 console.log(

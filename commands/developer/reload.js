@@ -4,7 +4,6 @@ const {
     EmbedBuilder,
     MessageFlags,
 } = require("discord.js");
-const path = require("path");
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -46,12 +45,13 @@ module.exports = {
             });
         }
 
-        const commandPath = path.join(__dirname, `${commandName}.js`);
+        const commandPath = command.path;
 
         try {
             delete require.cache[require.resolve(commandPath)];
 
             const newCommand = require(commandPath);
+            newCommand.path = commandPath;
             interaction.client.commands.set(newCommand.data.name, newCommand);
 
             await interaction.reply({
