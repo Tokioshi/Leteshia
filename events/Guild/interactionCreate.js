@@ -3,7 +3,6 @@ const {
     EmbedBuilder,
     MessageFlags,
     ChannelType,
-    PermissionFlagsBits,
     ActionRowBuilder,
     ButtonBuilder,
     ButtonStyle,
@@ -11,6 +10,7 @@ const {
     TextInputBuilder,
     TextInputStyle,
     AttachmentBuilder,
+    PermissionFlagsBits,
 } = require("discord.js");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
@@ -118,43 +118,47 @@ module.exports = {
                             ],
                         })
                         .then(async (channel) => {
-                            await channel.send({
-                                embeds: [
-                                    new EmbedBuilder()
-                                        .setTitle("Tiket Untuk Order Jasa")
-                                        .setColor(
-                                            interaction.client.config.embed
-                                                .default
-                                        )
-                                        .setDescription(
-                                            "```Nama Produk:\nList Perintah:```"
-                                        )
-                                        .setFooter({
-                                            text: "Gunakan format diatas untuk membeli jasa!",
-                                            iconURL:
-                                                interaction.client.user.displayAvatarURL(
-                                                    {
-                                                        size: 512,
-                                                        extension: "png",
-                                                    }
-                                                ),
-                                        }),
-                                ],
-                                components: [
-                                    new ActionRowBuilder().addComponents(
-                                        new ButtonBuilder()
-                                            .setCustomId("selesai")
-                                            .setLabel("Selesai")
-                                            .setEmoji("✅")
-                                            .setStyle(ButtonStyle.Success),
-                                        new ButtonBuilder()
-                                            .setCustomId("tutup")
-                                            .setLabel("Tutup")
-                                            .setEmoji("🔒")
-                                            .setStyle(ButtonStyle.Danger)
-                                    ),
-                                ],
-                            });
+                            await channel
+                                .send({
+                                    embeds: [
+                                        new EmbedBuilder()
+                                            .setTitle("Tiket Untuk Order Jasa")
+                                            .setColor(
+                                                interaction.client.config.embed
+                                                    .default
+                                            )
+                                            .setDescription(
+                                                "```Nama Produk:\nList Perintah:```"
+                                            )
+                                            .setFooter({
+                                                text: "Gunakan format diatas untuk membeli jasa!",
+                                                iconURL:
+                                                    interaction.client.user.displayAvatarURL(
+                                                        {
+                                                            size: 512,
+                                                            extension: "png",
+                                                        }
+                                                    ),
+                                            }),
+                                    ],
+                                    components: [
+                                        new ActionRowBuilder().addComponents(
+                                            new ButtonBuilder()
+                                                .setCustomId("selesai")
+                                                .setLabel("Selesai")
+                                                .setEmoji("✅")
+                                                .setStyle(ButtonStyle.Success),
+                                            new ButtonBuilder()
+                                                .setCustomId("tutup")
+                                                .setLabel("Tutup")
+                                                .setEmoji("🔒")
+                                                .setStyle(ButtonStyle.Danger)
+                                        ),
+                                    ],
+                                })
+                                .then((msg) => {
+                                    msg.pin();
+                                });
 
                             interaction.editReply({
                                 embeds: [
@@ -181,7 +185,7 @@ module.exports = {
                         embeds: [
                             new EmbedBuilder()
                                 .setColor(
-                                    interaction.client.config.embed.failed
+                                    interaction.client.config.embed.fail
                                 )
                                 .setTitle("Tiket anda gagal dibuat")
                                 .setDescription(
@@ -241,43 +245,47 @@ module.exports = {
                             ],
                         })
                         .then(async (channel) => {
-                            await channel.send({
-                                embeds: [
-                                    new EmbedBuilder()
-                                        .setTitle("Tiket Untuk Bertanya")
-                                        .setColor(
-                                            interaction.client.config.embed
-                                                .default
-                                        )
-                                        .setDescription(
-                                            "Silahkan tanya pertanyaan anda disini. Anda diperbolehkan untuk mention <@1010474132753883207> jika diperlukan. Jangan ragu untuk bertanya sebelum membeli!"
-                                        )
-                                        .setFooter({
-                                            text: "Gunakan format diatas untuk membeli jasa!",
-                                            iconURL:
-                                                interaction.client.user.displayAvatarURL(
-                                                    {
-                                                        size: 512,
-                                                        extension: "png",
-                                                    }
-                                                ),
-                                        }),
-                                ],
-                                components: [
-                                    new ActionRowBuilder().addComponents(
-                                        new ButtonBuilder()
-                                            .setCustomId("selesai")
-                                            .setLabel("Selesai")
-                                            .setEmoji("✅")
-                                            .setStyle(ButtonStyle.Success),
-                                        new ButtonBuilder()
-                                            .setCustomId("tutup")
-                                            .setLabel("Tutup")
-                                            .setEmoji("🔒")
-                                            .setStyle(ButtonStyle.Danger)
-                                    ),
-                                ],
-                            });
+                            await channel
+                                .send({
+                                    embeds: [
+                                        new EmbedBuilder()
+                                            .setTitle("Tiket Untuk Bertanya")
+                                            .setColor(
+                                                interaction.client.config.embed
+                                                    .default
+                                            )
+                                            .setDescription(
+                                                "Silahkan tanya pertanyaan anda disini. Anda diperbolehkan untuk mention <@1010474132753883207> jika diperlukan. Jangan ragu untuk bertanya sebelum membeli!"
+                                            )
+                                            .setFooter({
+                                                text: "Gunakan format diatas untuk membeli jasa!",
+                                                iconURL:
+                                                    interaction.client.user.displayAvatarURL(
+                                                        {
+                                                            size: 512,
+                                                            extension: "png",
+                                                        }
+                                                    ),
+                                            }),
+                                    ],
+                                    components: [
+                                        new ActionRowBuilder().addComponents(
+                                            new ButtonBuilder()
+                                                .setCustomId("selesai")
+                                                .setLabel("Selesai")
+                                                .setEmoji("✅")
+                                                .setStyle(ButtonStyle.Success),
+                                            new ButtonBuilder()
+                                                .setCustomId("tutup")
+                                                .setLabel("Tutup")
+                                                .setEmoji("🔒")
+                                                .setStyle(ButtonStyle.Danger)
+                                        ),
+                                    ],
+                                })
+                                .then((msg) => {
+                                    msg.pin();
+                                });
 
                             interaction.editReply({
                                 embeds: [
@@ -304,7 +312,7 @@ module.exports = {
                         embeds: [
                             new EmbedBuilder()
                                 .setColor(
-                                    interaction.client.config.embed.failed
+                                    interaction.client.config.embed.fail
                                 )
                                 .setTitle("Tiket anda gagal dibuat")
                                 .setDescription(
