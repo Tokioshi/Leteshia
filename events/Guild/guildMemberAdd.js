@@ -1,4 +1,4 @@
-const { Events, AttachmentBuilder, EmbedBuilder } = require("discord.js");
+const { Events, AttachmentBuilder } = require("discord.js");
 const { createCanvas, loadImage, registerFont } = require("canvas");
 const path = require("path");
 
@@ -6,52 +6,6 @@ module.exports = {
     name: Events.GuildMemberAdd,
     async execute(member) {
         if (member.guild.id == member.client.config.guildId) {
-            const guild = member.guild;
-            const newInvites = await guild.invites.fetch();
-            const oldInvites = member.client.inviteCache.get(guild.id);
-
-            let usedInvite = null;
-            newInvites.forEach((invite) => {
-                const oldUses = oldInvites.get(invite.code);
-                if (invite.uses > oldUses) {
-                    usedInvite = invite;
-                }
-            });
-
-            member.client.inviteCache.set(
-                guild.id,
-                new Map(newInvites.map((inv) => [inv.code, inv.uses]))
-            );
-
-            if (usedInvite) {
-                const inviter = usedInvite.inviter;
-                member.client.channels.cache
-                    .get(member.client.config.channel.invite)
-                    .send({
-                        embeds: [
-                            new EmbedBuilder()
-                            .setTitle('New Invite Detected')
-                            .setColor(member.client.config.embed.default)
-                            .setDescription(`${member.user} joined the server using invite \`${usedInvite.code}\` by ${inviter}`)
-                            .setFooter({ text: `${member.guild.name}` })
-                            .setTimestamp()
-                        ]
-                    });
-            } else {
-                member.client.channels.cache
-                    .get(member.client.config.channel.invite)
-                    .send({
-                        embeds: [
-                            new EmbedBuilder()
-                            .setTitle('New Invite Detected')
-                            .setColor(member.client.config.embed.default)
-                            .setDescription(`${member.user} joined the server, but I could't know who invited them.`)
-                            .setFooter({ text: `${member.guild.name}` })
-                            .setTimestamp()
-                        ]
-                    });
-            }
-
             try {
                 const user = member.user;
                 const canvas = createCanvas(735, 413);

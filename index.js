@@ -3,7 +3,6 @@ const {
     GatewayIntentBits,
     ActivityType,
     Collection,
-    Partials,
     EmbedBuilder,
 } = require("discord.js");
 const chalk = require("chalk");
@@ -14,12 +13,7 @@ class Bot extends Client {
             intents: [
                 GatewayIntentBits.Guilds,
                 GatewayIntentBits.GuildMembers,
-                GatewayIntentBits.GuildVoiceStates,
-                GatewayIntentBits.GuildMessages,
-                GatewayIntentBits.MessageContent,
-                GatewayIntentBits.GuildMessageReactions,
                 GatewayIntentBits.GuildPresences,
-                GatewayIntentBits.GuildInvites,
             ],
             presence: {
                 activities: [
@@ -29,7 +23,6 @@ class Bot extends Client {
                     },
                 ],
             },
-            partials: [Partials.Message, Partials.Channel, Partials.Reaction],
         });
 
         this.commands = new Collection();
@@ -61,7 +54,6 @@ class Bot extends Client {
     loadHandlers() {
         try {
             require("./handler/index")(this);
-            require("./handler/player")(this);
         } catch (error) {
             console.error("Failed to load handlers: ", error);
             throw error;
@@ -83,25 +75,24 @@ class Bot extends Client {
             chalk.white("Shutting down bot...")
         );
         try {
-            this.channels.cache.get(this.config.channel.logs).send({
+            this.channels.cache.get(this.config.channel.botLogs).send({
                 embeds: [
                     new EmbedBuilder()
                         .setAuthor({
                             name: `${this.user.username} is shutting down`,
                             iconURL: this.user.displayAvatarURL({
-                                extension: "png",
                                 size: 512,
                             }),
                         })
-                        .setColor(this.config.embed.fail)
-                        .setTitle("System Shutdown Initiated")
+                        .setColor("Red")
+                        .setTitle("Pematian Sistem Telah Dimulai")
                         .setDescription(
-                            `The bot is beginning the shutdown process. This can happen for several reasons, including a scheduled restart or a manual command from a developer.\n\nPlease be aware that the bot will be unavailable for a few moments.`
+                            `Bot sedang memulai proses shutdown. Hal ini dapat terjadi karena beberapa alasan, termasuk restart terjadwal atau perintah manual dari pengembang.\n\nHarap diperhatikan bahwa bot akan tidak tersedia untuk beberapa saat.`
                         )
                         .addFields(
                             {
                                 name: "Status",
-                                value: "Preparing to go offline...",
+                                value: "Beralih ke mode offline...",
                                 inline: true,
                             },
                             {
@@ -110,7 +101,7 @@ class Bot extends Client {
                                 inline: true,
                             }
                         )
-                        .setFooter({ text: "System Notification" })
+                        .setFooter({ text: "Pemberitahuan Sistem" })
                         .setTimestamp(),
                 ],
             });

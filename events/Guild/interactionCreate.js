@@ -1,7 +1,6 @@
 const {
     Events,
     EmbedBuilder,
-    MessageFlags,
     ChannelType,
     ActionRowBuilder,
     ButtonBuilder,
@@ -9,20 +8,18 @@ const {
     ModalBuilder,
     TextInputBuilder,
     TextInputStyle,
-    AttachmentBuilder,
+    LabelBuilder,
+    StringSelectMenuBuilder,
+    StringSelectMenuOptionBuilder,
     PermissionFlagsBits,
 } = require("discord.js");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
-const { capital } = require("../../function/index");
 const chalk = require("chalk");
-const { createCanvas, loadImage, registerFont } = require("canvas");
-const path = require("path");
 
 module.exports = {
     name: Events.InteractionCreate,
     async execute(interaction) {
-        // Command Interaction
         if (interaction.isChatInputCommand()) {
             const command = interaction.client.commands.get(
                 interaction.commandName
@@ -31,12 +28,12 @@ module.exports = {
                 await interaction.reply({
                     embeds: [
                         new EmbedBuilder()
-                            .setColor(interaction.client.config.embed.fail)
+                            .setColor("Red")
                             .setDescription(
                                 `Unknown command \`${interaction.commandName}\`. It might have been deleted.`
                             ),
                     ],
-                    flags: MessageFlags.Ephemeral,
+                    flags: 64,
                 });
                 return;
             }
@@ -53,350 +50,162 @@ module.exports = {
                     await interaction.reply({
                         embeds: [
                             new EmbedBuilder()
-                                .setColor(interaction.client.config.embed.fail)
+                                .setColor("Red")
                                 .setDescription(
                                     `There was a problem executing \`${interaction.commandName}\`.`
                                 ),
                         ],
-                        flags: MessageFlags.Ephemeral,
+                        flags: 64,
                     });
                 } else if (interaction.deferred) {
                     await interaction.followUp({
                         embeds: [
                             new EmbedBuilder()
-                                .setColor(interaction.client.config.embed.fail)
+                                .setColor("Red")
                                 .setDescription(
                                     `There was a problem executing \`${interaction.commandName}\`.`
                                 ),
                         ],
-                        flags: MessageFlags.Ephemeral,
+                        flags: 64,
                     });
                 }
             }
         }
 
-        // Button Interaction
         if (interaction.isButton()) {
-            // Membeli
-            if (interaction.customId == "beli") {
-                await interaction.reply({
-                    embeds: [
-                        new EmbedBuilder()
-                            .setColor(interaction.client.config.embed.default)
-                            .setTitle("Tiket anda sedang dibuat")
-                            .setDescription(
-                                "Harap bersabar! Tiket anda sedang diproses dan akan siap dalam beberapa detik..."
-                            ),
-                    ],
-                    flags: MessageFlags.Ephemeral,
-                });
-
-                try {
-                    await interaction.guild.channels
-                        .create({
-                            name: `◜beli-${interaction.user.username}◞`,
-                            type: ChannelType.GuildText,
-                            parent: "1251433453669449800",
-                            topic: `Tiket membeli ${interaction.user}`,
-                            permissionOverwrites: [
-                                {
-                                    id: interaction.guild.roles.everyone,
-                                    deny: PermissionFlagsBits.ViewChannel,
-                                },
-                                {
-                                    id: interaction.user.id,
-                                    allow: PermissionFlagsBits.ViewChannel,
-                                },
-                                {
-                                    id: "1101865823188025354",
-                                    allow: PermissionFlagsBits.ViewChannel,
-                                },
-                                {
-                                    id: interaction.client.user.id,
-                                    allow: PermissionFlagsBits.ViewChannel,
-                                },
-                            ],
-                        })
-                        .then(async (channel) => {
-                            await channel
-                                .send({
-                                    embeds: [
-                                        new EmbedBuilder()
-                                            .setTitle("Tiket Untuk Order Jasa")
-                                            .setColor(
-                                                interaction.client.config.embed
-                                                    .default
-                                            )
-                                            .setDescription(
-                                                "```Nama Produk:\nList Perintah:```"
-                                            )
-                                            .setFooter({
-                                                text: "Gunakan format diatas untuk membeli jasa!",
-                                                iconURL:
-                                                    interaction.client.user.displayAvatarURL(
-                                                        {
-                                                            size: 512,
-                                                            extension: "png",
-                                                        }
-                                                    ),
-                                            }),
-                                    ],
-                                    components: [
-                                        new ActionRowBuilder().addComponents(
-                                            new ButtonBuilder()
-                                                .setCustomId("selesai")
-                                                .setLabel("Selesai")
-                                                .setEmoji("✅")
-                                                .setStyle(ButtonStyle.Success),
-                                            new ButtonBuilder()
-                                                .setCustomId("tutup")
-                                                .setLabel("Tutup")
-                                                .setEmoji("🔒")
-                                                .setStyle(ButtonStyle.Danger)
-                                        ),
-                                    ],
-                                })
-                                .then((msg) => {
-                                    msg.pin();
-                                });
-
-                            interaction.editReply({
-                                embeds: [
-                                    new EmbedBuilder()
-                                        .setColor(
-                                            interaction.client.config.embed
-                                                .success
+            if (interaction.customId == "buy") {
+                interaction.showModal(
+                    new ModalBuilder()
+                        .setTitle("Form Tiket")
+                        .setCustomId("buy")
+                        .addLabelComponents(
+                            new LabelBuilder()
+                                .setLabel("Membaca Syarat dan Ketentuan")
+                                .setStringSelectMenuComponent(
+                                    new StringSelectMenuBuilder()
+                                        .setCustomId("s&k")
+                                        .setPlaceholder("Pilih")
+                                        .addOptions(
+                                            new StringSelectMenuOptionBuilder()
+                                                .setLabel("Sudah")
+                                                .setValue("Sudah")
+                                                .setDescription(
+                                                    "Dengan ini, kamu dianggap telah membaca S&K"
+                                                )
+                                                .setEmoji("✅"),
+                                            new StringSelectMenuOptionBuilder()
+                                                .setLabel("Belum")
+                                                .setValue("Belum")
+                                                .setDescription(
+                                                    "Dengan ini, kamu dianggap belum membaca S&K"
+                                                )
+                                                .setEmoji("❌")
                                         )
-                                        .setTitle("Tiket anda telah dibuat")
-                                        .setDescription(
-                                            `Tiket anda berhasil dibuat di ${channel}`
-                                        ),
-                                ],
-                                flags: MessageFlags.Ephemeral,
-                            });
-
-                            await db.set(
-                                `ticket-owner-${channel.id}`,
-                                interaction.user.id
-                            );
-                        });
-                } catch (error) {
-                    interaction.editReply({
-                        embeds: [
-                            new EmbedBuilder()
-                                .setColor(
-                                    interaction.client.config.embed.fail
                                 )
-                                .setTitle("Tiket anda gagal dibuat")
-                                .setDescription(
-                                    `Tiket anda gagal dibuat, silahkan hubungi <@1010474132753883207>`
-                                ),
-                        ],
-                        flags: MessageFlags.Ephemeral,
-                    });
-
-                    console.error(
-                        chalk.redBright("[ERROR]"),
-                        chalk.red(
-                            `Failed trying to create channel because: `,
-                            error
                         )
-                    );
-                }
+                        .addLabelComponents(
+                            new LabelBuilder()
+                                .setLabel("Jasa Yang Mau Dibeli")
+                                .setStringSelectMenuComponent(
+                                    new StringSelectMenuBuilder()
+                                        .setCustomId("service")
+                                        .setPlaceholder("Pilih")
+                                        .addOptions(
+                                            new StringSelectMenuOptionBuilder()
+                                                .setLabel("Bot")
+                                                .setValue("Bot")
+                                                .setDescription(
+                                                    "Pilih ini kalo kamu mau beli jasa bot Discord"
+                                                )
+                                                .setEmoji("🤖"),
+                                            new StringSelectMenuOptionBuilder()
+                                                .setLabel("Server")
+                                                .setValue("Server")
+                                                .setDescription(
+                                                    "Pilih ini kalo kamu mau beli jasa server Discord"
+                                                )
+                                                .setEmoji("🗃️")
+                                        )
+                                )
+                        )
+                );
             }
 
-            if (interaction.customId == "bertanya") {
-                await interaction.reply({
-                    embeds: [
-                        new EmbedBuilder()
-                            .setColor(interaction.client.config.embed.default)
-                            .setTitle("Tiket anda sedang dibuat")
-                            .setDescription(
-                                "Harap bersabar! Tiket anda sedang diproses dan akan siap dalam beberapa detik..."
-                            ),
-                    ],
-                    flags: MessageFlags.Ephemeral,
-                });
-
-                try {
-                    await interaction.guild.channels
-                        .create({
-                            name: `◜bertanya-${interaction.user.username}◞`,
-                            type: ChannelType.GuildText,
-                            parent: "1251433453669449800",
-                            topic: `Tiket bertanya ${interaction.user}`,
-                            permissionOverwrites: [
-                                {
-                                    id: interaction.guild.roles.everyone,
-                                    deny: PermissionFlagsBits.ViewChannel,
-                                },
-                                {
-                                    id: interaction.user.id,
-                                    allow: PermissionFlagsBits.ViewChannel,
-                                },
-                                {
-                                    id: "1101865823188025354",
-                                    allow: PermissionFlagsBits.ViewChannel,
-                                },
-                                {
-                                    id: interaction.client.user.id,
-                                    allow: PermissionFlagsBits.ViewChannel,
-                                },
-                            ],
-                        })
-                        .then(async (channel) => {
-                            await channel
-                                .send({
-                                    embeds: [
-                                        new EmbedBuilder()
-                                            .setTitle("Tiket Untuk Bertanya")
-                                            .setColor(
-                                                interaction.client.config.embed
-                                                    .default
-                                            )
-                                            .setDescription(
-                                                "Silahkan tanya pertanyaan anda disini. Anda diperbolehkan untuk mention <@1010474132753883207> jika diperlukan. Jangan ragu untuk bertanya sebelum membeli!"
-                                            )
-                                            .setFooter({
-                                                text: "Gunakan format diatas untuk membeli jasa!",
-                                                iconURL:
-                                                    interaction.client.user.displayAvatarURL(
-                                                        {
-                                                            size: 512,
-                                                            extension: "png",
-                                                        }
-                                                    ),
-                                            }),
-                                    ],
-                                    components: [
-                                        new ActionRowBuilder().addComponents(
-                                            new ButtonBuilder()
-                                                .setCustomId("selesai")
-                                                .setLabel("Selesai")
-                                                .setEmoji("✅")
-                                                .setStyle(ButtonStyle.Success),
-                                            new ButtonBuilder()
-                                                .setCustomId("tutup")
-                                                .setLabel("Tutup")
-                                                .setEmoji("🔒")
-                                                .setStyle(ButtonStyle.Danger)
-                                        ),
-                                    ],
-                                })
-                                .then((msg) => {
-                                    msg.pin();
-                                });
-
-                            interaction.editReply({
-                                embeds: [
-                                    new EmbedBuilder()
-                                        .setColor(
-                                            interaction.client.config.embed
-                                                .success
+            if (interaction.customId == "ask") {
+                interaction.showModal(
+                    new ModalBuilder()
+                        .setTitle("Form Tiket")
+                        .setCustomId("ask")
+                        .addLabelComponents(
+                            new LabelBuilder()
+                                .setLabel("Hal Yang Ingin Ditanya")
+                                .setStringSelectMenuComponent(
+                                    new StringSelectMenuBuilder()
+                                        .setCustomId("ask")
+                                        .setPlaceholder("Pilih")
+                                        .addOptions(
+                                            new StringSelectMenuOptionBuilder()
+                                                .setLabel("Bot")
+                                                .setValue("Bot")
+                                                .setDescription(
+                                                    "Pilih ini jika ingin bertanya soal Bot Discord"
+                                                )
+                                                .setEmoji("🤖"),
+                                            new StringSelectMenuOptionBuilder()
+                                                .setLabel("Server")
+                                                .setValue("Server")
+                                                .setDescription(
+                                                    "Pilih ini jika ingin bertanya soal Server Discord"
+                                                )
+                                                .setEmoji("🗃️")
                                         )
-                                        .setTitle("Tiket anda telah dibuat")
-                                        .setDescription(
-                                            `Tiket anda berhasil dibuat di ${channel}`
-                                        ),
-                                ],
-                                flags: MessageFlags.Ephemeral,
-                            });
-
-                            await db.set(
-                                `ticket-owner-${channel.id}`,
-                                interaction.user.id
-                            );
-                        });
-                } catch (error) {
-                    interaction.editReply({
-                        embeds: [
-                            new EmbedBuilder()
-                                .setColor(
-                                    interaction.client.config.embed.fail
                                 )
-                                .setTitle("Tiket anda gagal dibuat")
-                                .setDescription(
-                                    `Tiket anda gagal dibuat, silahkan hubungi <@1010474132753883207>`
-                                ),
-                        ],
-                        flags: MessageFlags.Ephemeral,
-                    });
-
-                    console.error(
-                        chalk.redBright("[ERROR]"),
-                        chalk.red(
-                            `Failed trying to create channel because: `,
-                            error
                         )
-                    );
-                }
+                );
             }
 
-            if (interaction.customId == "selesai") {
+            if (interaction.customId == "done") {
                 if (interaction.user.id !== "1010474132753883207") {
                     return interaction.reply({
                         embeds: [
                             new EmbedBuilder()
                                 .setTitle("Gagal")
-                                .setColor(interaction.client.config.embed.fail)
+                                .setColor("Red")
                                 .setDescription(
-                                    "Button ini hanya bisa diklik oleh manager! Gunakan tombol disebelah jika ingin menghapus manual!"
+                                    "Button ini hanya bisa diklik oleh Admin! Gunakan tombol disebelah jika ingin menghapus manual!"
                                 ),
                         ],
-                        flags: MessageFlags.Ephemeral,
+                        flags: 64,
                     });
                 }
 
                 interaction.showModal(
                     new ModalBuilder()
-                        .setCustomId("selesai")
+                        .setCustomId("done")
                         .setTitle("Selesai Orderan")
-                        .addComponents(
-                            new ActionRowBuilder().addComponents(
-                                new TextInputBuilder()
-                                    .setCustomId("pesan")
-                                    .setLabel("Pesan untuk customer")
-                                    .setMaxLength(1024)
-                                    .setStyle(TextInputStyle.Paragraph)
-                            )
+                        .addLabelComponents(
+                            new LabelBuilder()
+                                .setLabel("Alasan Menutup Tiket")
+                                .setTextInputComponent(
+                                    new TextInputBuilder()
+                                        .setCustomId("reason")
+                                        .setStyle(TextInputStyle.Paragraph)
+                                )
                         )
                 );
             }
 
-            if (interaction.customId == "tutup") {
-                interaction.reply({
-                    embeds: [
-                        new EmbedBuilder()
-                            .setTitle("Yakin?")
-                            .setColor(interaction.client.config.embed.default)
-                            .setDescription(
-                                "Yakin ingin menghapus tiket? Klik tombol dibawah untuk konfirmasi."
-                            ),
-                    ],
-                    components: [
-                        new ActionRowBuilder().addComponents(
-                            new ButtonBuilder()
-                                .setCustomId("yakin")
-                                .setEmoji("✅")
-                                .setStyle(ButtonStyle.Secondary)
-                        ),
-                    ],
-                });
-            }
-
-            if (interaction.customId == "yakin") {
+            if (interaction.customId == "close") {
                 interaction.channel.delete().then(async (channel) => {
-                    const user = await db.get(`ticket-owner-${channel.id}`);
+                    const user = await db.get(`ticket:owner:${channel.id}`);
 
                     interaction.guild.channels.cache
-                        .get("1253955907113455700")
+                        .get("1425643464351027282")
                         .send({
                             embeds: [
                                 new EmbedBuilder()
                                     .setTitle("Tiket Dihapus")
-                                    .setColor(
-                                        interaction.client.config.embed.default
-                                    )
+                                    .setColor("Orange")
                                     .setThumbnail(
                                         interaction.user.displayAvatarURL({
                                             extension: "png",
@@ -428,256 +237,266 @@ module.exports = {
                                         text: "Ya udah segitu aja",
                                         iconURL:
                                             interaction.client.user.displayAvatarURL(
-                                                { extension: "png", size: 512 }
+                                                {
+                                                    extension: "png",
+                                                    size: 512,
+                                                }
                                             ),
                                     })
                                     .setTimestamp(),
                             ],
                         });
 
-                    try {
-                        await interaction.guild.members.cache.get(user).send({
-                            embeds: [
-                                new EmbedBuilder()
-                                    .setTitle("Tiket Anda Dihapus")
-                                    .setColor(
-                                        interaction.client.config.embed.default
-                                    )
-                                    .setThumbnail(
-                                        interaction.user.displayAvatarURL({
-                                            extension: "png",
-                                            size: 512,
-                                        })
-                                    )
-                                    .setFields(
-                                        {
-                                            name: "Nama Tiket",
-                                            value: `${channel.name}`,
-                                            inline: true,
-                                        },
-                                        {
-                                            name: "Pemilik Tiket",
-                                            value: `<@${user}>`,
-                                            inline: true,
-                                        },
-                                        {
-                                            name: "Ditutup Oleh",
-                                            value: `${interaction.user}`,
-                                            inline: true,
-                                        },
-                                        { name: "Alasan", value: `Dihapus` }
-                                    )
-                                    .setFooter({
-                                        text: "Tiket ditutup tanpa alasan",
-                                        iconURL:
-                                            interaction.client.user.displayAvatarURL(
-                                                { extension: "png", size: 512 }
-                                            ),
-                                    })
-                                    .setTimestamp(),
-                            ],
-                        });
-                    } catch (error) {
-                        return;
-                    }
-
-                    await db.delete(`ticket-owner-${channel.id}`);
-                });
-            }
-
-            if (interaction.customId == "verify") {
-                if (interaction.member.roles.cache.has("1373289325021761637")) {
-                    return interaction.reply({
-                        embeds: [
-                            new EmbedBuilder()
-                                .setTitle("Gagal")
-                                .setColor(interaction.client.config.embed.fail)
-                                .setDescription("Kamu sudah terverifikasi!"),
-                        ],
-                        flags: MessageFlags.Ephemeral,
-                    });
-                }
-
-                interaction.member.roles.add("1373289325021761637").then(() => {
-                    interaction.reply({
-                        embeds: [
-                            new EmbedBuilder()
-                                .setTitle("Berhasil Verifikasi!")
-                                .setColor("Blue")
-                                .setDescription(
-                                    "Kamu berhasil mendapatkan role <@&1373289325021761637>!"
-                                )
-                                .setFooter({
-                                    text: "Role akan menghilang dalam 10 detik...",
-                                }),
-                        ],
-                        flags: MessageFlags.Ephemeral,
-                    });
-
-                    setTimeout(() => {
-                        interaction.member.roles
-                            .remove("1373289325021761637")
-                            .catch((error) =>
-                                console.error(`Failed to remove role: ${error}`)
-                            );
-                    }, 10000);
-                });
-            }
-
-            if (interaction.customId == "welcome-button") {
-                try {
-                    await interaction.deferReply({
-                        flags: MessageFlags.Ephemeral,
-                    });
-
-                    const user = interaction.user;
-
-                    const canvas = createCanvas(1024, 500);
-                    const ctx = canvas.getContext("2d");
-
-                    const avatar = await loadImage(
-                        user.displayAvatarURL({ extension: "png", size: 256 })
-                    );
-
-                    const centerX = canvas.width / 2;
-                    const avatarSize = 200;
-                    const avatarX = centerX - avatarSize / 2;
-                    const avatarY = 40;
-                    registerFont(
-                        path.join(
-                            __dirname,
-                            "../../assets/fonts/Metropolis-Bold.otf"
-                        ),
-                        {
-                            family: "Metropolis",
-                        }
-                    );
-
-                    ctx.save();
-                    ctx.beginPath();
-                    ctx.arc(
-                        centerX,
-                        avatarY + avatarSize / 2,
-                        avatarSize / 2,
-                        0,
-                        Math.PI * 2,
-                        true
-                    );
-                    ctx.closePath();
-                    ctx.clip();
-                    ctx.drawImage(
-                        avatar,
-                        avatarX,
-                        avatarY,
-                        avatarSize,
-                        avatarSize
-                    );
-                    ctx.restore();
-
-                    ctx.beginPath();
-                    ctx.arc(
-                        centerX,
-                        avatarY + avatarSize / 2,
-                        avatarSize / 2 + 5,
-                        0,
-                        Math.PI * 2
-                    );
-                    ctx.lineWidth = 6;
-                    ctx.strokeStyle = "#FFFFFF";
-                    ctx.stroke();
-
-                    ctx.fillStyle = "#FFFFFF";
-                    ctx.font = "64px Metropolis";
-                    ctx.textAlign = "center";
-                    ctx.fillText("WELCOME", centerX, 310);
-
-                    ctx.font = "36px Metropolis";
-                    ctx.fillText(user.username.toUpperCase(), centerX, 360);
-
-                    ctx.font = "28px Metropolis";
-                    ctx.fillText("KAMU ADALAH MEMBER KE-30", centerX, 410);
-
-                    const buffer = canvas.toBuffer("image/png");
-                    const attachment = new AttachmentBuilder(buffer, {
-                        name: "welcome.png",
-                    });
-
-                    await interaction.editReply({
-                        files: [attachment],
-                    });
-                } catch (err) {
-                    console.error("Gagal buat welcome card:", err);
-                    await interaction.editReply({
-                        content: `Selamat datang, ${user}!`,
-                    });
-                }
-            }
-
-            if (interaction.customId == "welcome-text") {
-                return interaction.reply({
-                    embeds: [
-                        new EmbedBuilder()
-                            .setTitle(
-                                `Jayalah Kedatanganmu di ${interaction.guild.name}!`
-                            )
-                            .setColor(interaction.client.config.embed.success)
-                            .setDescription(
-                                `Salam, **${interaction.user.username}**! Hamba amat bersukacita karena engkau telah bergabung dengan **balai persaudaraan** kami.`
-                            )
-                            .addFields(
-                                {
-                                    name: "✨ Apakah Selanjutnya?",
-                                    value: "Silakan tilik <#1251432122741424188> guna membaca **tata tertib** **peseban** kami dan <#1370383470794244157> untuk mulai **bersemuka**!",
-                                    inline: false,
-                                },
-                                {
-                                    name: "🚀 Mari Bertemu!",
-                                    value: "Janganlah lenggana untuk memperkenalkan diri di **wahana** <#1370682018416820254>!",
-                                    inline: false,
-                                }
-                            )
-                            .setThumbnail(
-                                interaction.user.displayAvatarURL({
-                                    dynamic: true,
-                                    size: 256,
-                                })
-                            )
-                            .setFooter({
-                                text: `Hamba harap engkau betah bersemayam di sini!`,
-                                iconURL:
-                                    interaction.client.user.displayAvatarURL({
-                                        extension: "png",
-                                        size: 512,
-                                    }),
-                            })
-                            .setTimestamp(),
-                    ],
-                    flags: MessageFlags.Ephemeral,
+                    await db.delete(`ticket:owner:${channel.id}`);
                 });
             }
         }
 
         if (interaction.isModalSubmit()) {
-            if (interaction.customId == "selesai") {
-                const pesan = interaction.fields.getTextInputValue("pesan");
+            if (interaction.customId == "buy") {
+                await interaction.deferReply({ flags: 64 });
+
+                const condition =
+                    interaction.fields.getStringSelectValues("s&k");
+                const service =
+                    interaction.fields.getStringSelectValues("service");
+
+                if (condition == "Belum") {
+                    return interaction.editReply({
+                        content:
+                            "https://cdn.discordapp.com/attachments/1370383277029982259/1427620977906421790/16840053903298082133.gif",
+                    });
+                }
+
+                await interaction.editReply({
+                    embeds: [
+                        new EmbedBuilder()
+                            .setColor("Orange")
+                            .setTitle("Tiket anda sedang dibuat")
+                            .setDescription(
+                                "Harap bersabar! Tiket anda sedang diproses dan akan siap dalam beberapa detik..."
+                            ),
+                    ],
+                });
+
+                try {
+                    await interaction.guild.channels
+                        .create({
+                            name: `◜beli-${interaction.user.username}◞`,
+                            type: ChannelType.GuildText,
+                            parent: interaction.client.config.channel.parent,
+                            topic: `Tiket membeli ${interaction.user}`,
+                            permissionOverwrites: [
+                                {
+                                    id: interaction.guild.roles.everyone,
+                                    deny: PermissionFlagsBits.ViewChannel,
+                                },
+                                {
+                                    id: interaction.user.id,
+                                    allow: PermissionFlagsBits.ViewChannel,
+                                },
+                                {
+                                    id: interaction.client.user.id,
+                                    allow: PermissionFlagsBits.ViewChannel,
+                                },
+                            ],
+                        })
+                        .then(async (channel) => {
+                            await channel
+                                .send({
+                                    content: `${interaction.user}`,
+                                    embeds: [
+                                        new EmbedBuilder()
+                                            .setTitle(`Tiket Untuk Order Jasa`)
+                                            .setColor("Orange")
+                                            .setDescription(
+                                                `Di bawah ini adalah informasi dari form yang telah anda buat sebelumnya.\n\`\`\`Jasa yang akan dibeli : ${service}\nSudah membaca S&K     : ${condition}\`\`\`Dengan ini, anda dianggap telah membaca Syarat dan Ketentuan Harmony Hub.`
+                                            ),
+                                    ],
+                                    components: [
+                                        new ActionRowBuilder().addComponents(
+                                            new ButtonBuilder()
+                                                .setCustomId("done")
+                                                .setLabel("Selesai")
+                                                .setEmoji("✅")
+                                                .setStyle(ButtonStyle.Success),
+                                            new ButtonBuilder()
+                                                .setCustomId("close")
+                                                .setLabel("Tutup")
+                                                .setEmoji("🔒")
+                                                .setStyle(ButtonStyle.Danger)
+                                        ),
+                                    ],
+                                })
+                                .then((msg) => {
+                                    msg.pin();
+                                });
+
+                            interaction.editReply({
+                                embeds: [
+                                    new EmbedBuilder()
+                                        .setColor("Green")
+                                        .setTitle("Tiket anda telah dibuat")
+                                        .setDescription(
+                                            `Tiket anda berhasil dibuat di ${channel}`
+                                        ),
+                                ],
+                            });
+
+                            await db.set(
+                                `ticket:owner:${channel.id}`,
+                                interaction.user.id
+                            );
+                        });
+                } catch (error) {
+                    interaction.editReply({
+                        embeds: [
+                            new EmbedBuilder()
+                                .setColor("Red")
+                                .setTitle("Tiket anda gagal dibuat")
+                                .setDescription(
+                                    `Tiket anda gagal dibuat, silahkan hubungi <@1010474132753883207>`
+                                ),
+                        ],
+                    });
+
+                    console.error(
+                        chalk.redBright("[ERROR]"),
+                        chalk.red(
+                            `Failed trying to create channel because: `,
+                            error
+                        )
+                    );
+                }
+            }
+
+            if (interaction.customId == "ask") {
+                await interaction.deferReply({ flags: 64 });
+
+                const service = interaction.fields.getStringSelectValues("ask");
+
+                await interaction.editReply({
+                    embeds: [
+                        new EmbedBuilder()
+                            .setColor("Orange")
+                            .setTitle("Tiket anda sedang dibuat")
+                            .setDescription(
+                                "Harap bersabar! Tiket anda sedang diproses dan akan siap dalam beberapa detik..."
+                            ),
+                    ],
+                });
+
+                try {
+                    await interaction.guild.channels
+                        .create({
+                            name: `◜bertanya-${interaction.user.username}◞`,
+                            type: ChannelType.GuildText,
+                            parent: "1425645832115327108",
+                            topic: `Tiket bertanya ${interaction.user}`,
+                            permissionOverwrites: [
+                                {
+                                    id: interaction.guild.roles.everyone,
+                                    deny: PermissionFlagsBits.ViewChannel,
+                                },
+                                {
+                                    id: interaction.user.id,
+                                    allow: PermissionFlagsBits.ViewChannel,
+                                },
+                                {
+                                    id: interaction.client.user.id,
+                                    allow: PermissionFlagsBits.ViewChannel,
+                                },
+                            ],
+                        })
+                        .then(async (channel) => {
+                            await channel
+                                .send({
+                                    content: `${interaction.user}`,
+                                    embeds: [
+                                        new EmbedBuilder()
+                                            .setTitle(
+                                                `Tiket Untuk Bertanya Soal ${service}`
+                                            )
+                                            .setColor("Orange")
+                                            .setDescription(
+                                                `Silahkan tanya pertanyaan anda disini. Anda diperbolehkan untuk mention <@1010474132753883207> jika diperlukan. Jangan ragu untuk bertanya sebelum membeli!`
+                                            ),
+                                    ],
+                                    components: [
+                                        new ActionRowBuilder().addComponents(
+                                            new ButtonBuilder()
+                                                .setCustomId("done")
+                                                .setLabel("Selesai")
+                                                .setEmoji("✅")
+                                                .setStyle(ButtonStyle.Success),
+                                            new ButtonBuilder()
+                                                .setCustomId("close")
+                                                .setLabel("Tutup")
+                                                .setEmoji("🔒")
+                                                .setStyle(ButtonStyle.Danger)
+                                        ),
+                                    ],
+                                })
+                                .then((msg) => {
+                                    msg.pin();
+                                });
+
+                            interaction.editReply({
+                                embeds: [
+                                    new EmbedBuilder()
+                                        .setColor("Green")
+                                        .setTitle("Tiket anda telah dibuat")
+                                        .setDescription(
+                                            `Tiket anda berhasil dibuat di ${channel}`
+                                        ),
+                                ],
+                            });
+
+                            await db.set(
+                                `ticket:owner:${channel.id}`,
+                                interaction.user.id
+                            );
+                        });
+                } catch (error) {
+                    interaction.editReply({
+                        embeds: [
+                            new EmbedBuilder()
+                                .setColor("Red")
+                                .setTitle("Tiket anda gagal dibuat")
+                                .setDescription(
+                                    `Tiket anda gagal dibuat, silahkan hubungi <@1010474132753883207>`
+                                ),
+                        ],
+                    });
+
+                    console.error(
+                        chalk.redBright("[ERROR]"),
+                        chalk.red(
+                            `Failed trying to create channel because: `,
+                            error
+                        )
+                    );
+                }
+            }
+
+            if (interaction.customId == "done") {
+                const pesan = interaction.fields.getTextInputValue("reason");
 
                 await interaction.reply({
                     content: "Deleting...",
-                    flags: MessageFlags.Ephemeral,
+                    flags: 64,
                 });
 
                 interaction.channel.delete().then(async (channel) => {
-                    const user = await db.get(`ticket-owner-${channel.id}`);
+                    const user = await db.get(`ticket:owner:${channel.id}`);
 
                     interaction.guild.channels.cache
-                        .get("1253955907113455700")
+                        .get(interaction.client.config.channel.logs)
                         .send({
                             embeds: [
                                 new EmbedBuilder()
                                     .setTitle("Tiket Dihapus")
-                                    .setColor(
-                                        interaction.client.config.embed.default
-                                    )
+                                    .setColor("Orange")
                                     .setThumbnail(
                                         interaction.user.displayAvatarURL({
                                             extension: "png",
@@ -706,113 +525,52 @@ module.exports = {
                                         text: "Ya udah segitu aja",
                                         iconURL:
                                             interaction.client.user.displayAvatarURL(
-                                                { extension: "png", size: 512 }
+                                                {
+                                                    extension: "png",
+                                                    size: 512,
+                                                }
                                             ),
                                     })
                                     .setTimestamp(),
                             ],
                         });
 
-                    try {
-                        await interaction.guild.members.cache.get(user).send({
-                            embeds: [
-                                new EmbedBuilder()
-                                    .setTitle("Tiket Anda Dihapus")
-                                    .setColor(
-                                        interaction.client.config.embed.default
-                                    )
-                                    .setThumbnail(
-                                        interaction.user.displayAvatarURL({
-                                            extension: "png",
-                                            size: 512,
-                                        })
-                                    )
-                                    .setDescription(
-                                        "Jangan lupa kasih feedback di channel <#1251433593616465920> ya!"
-                                    )
-                                    .setFields(
-                                        {
-                                            name: "Nama Tiket",
-                                            value: `${channel.name}`,
-                                            inline: true,
-                                        },
-                                        {
-                                            name: "Pemilik Tiket",
-                                            value: `<@${user}>`,
-                                            inline: true,
-                                        },
-                                        {
-                                            name: "Ditutup Oleh",
-                                            value: `${interaction.user}`,
-                                            inline: true,
-                                        },
-                                        { name: "Alasan", value: `${pesan}` }
-                                    )
-                                    .setFooter({
-                                        text: "Terima kasih telah membeli!",
-                                        iconURL:
-                                            interaction.client.user.displayAvatarURL(
-                                                { extension: "png", size: 512 }
-                                            ),
-                                    })
-                                    .setTimestamp(),
-                            ],
-                        });
-                    } catch (error) {
-                        return;
-                    }
-
-                    await db.delete(`ticket-owner-${channel.id}`);
+                    await db.delete(`ticket:owner:${channel.id}`);
                 });
             }
 
             if (interaction.customId == "feedback") {
-                const pesan = interaction.fields.getTextInputValue("pesan");
-                const bintang = interaction.fields.getTextInputValue("bintang");
+                const message =
+                    interaction.fields.getTextInputValue("feedback_message");
+                const star =
+                    interaction.fields.getStringSelectValues("feedback_star");
 
-                if (isNaN(bintang)) {
-                    return interaction.reply({
-                        embeds: [
-                            new EmbedBuilder()
-                                .setTitle("Gagal")
-                                .setColor(interaction.client.config.embed.fail)
-                                .setDescription(
-                                    "Harap masukkan angka di field bintang antar 1 - 5!"
-                                ),
-                        ],
-                        flags: MessageFlags.Ephemeral,
-                    });
-                }
-
-                const bintangNumber = Number(bintang);
-                if (bintangNumber >= 1 && bintangNumber <= 5) {
-                    const stars = "⭐".repeat(bintangNumber);
+                const starNumber = Number(star);
+                if (starNumber >= 1 && starNumber <= 5) {
+                    const stars = "⭐".repeat(starNumber);
 
                     interaction.guild.channels.cache
-                        .get("1251433593616465920")
+                        .get(interaction.client.config.channel.feedback)
                         .send({
                             embeds: [
                                 new EmbedBuilder()
                                     .setAuthor({
-                                        name: `Feedback Dari ${capital(
-                                            interaction.user.username
-                                        )}`,
+                                        name: `Feedback Dari ${interaction.user.displayName}`,
+                                        iconURL:
+                                            interaction.user.displayAvatarURL({
+                                                size: 512,
+                                            }),
                                     })
-                                    .setColor(
-                                        interaction.client.config.embed.default
-                                    )
-                                    .setThumbnail(
-                                        interaction.user.displayAvatarURL({
-                                            extension: "png",
-                                            size: 512,
-                                        })
-                                    )
+                                    .setColor("Orange")
                                     .setFields(
-                                        { name: "Pesan", value: `${pesan}` },
+                                        {
+                                            name: "Pesan",
+                                            value: `${message}`,
+                                        },
                                         { name: "Bintang", value: `${stars}` }
                                     )
                                     .setFooter({
-                                        text: "Terima kasih atas feedbacknya!",
+                                        text: "Terima kasih atas masukan Anda!",
                                     })
                                     .setTimestamp(),
                             ],
@@ -821,27 +579,13 @@ module.exports = {
                     interaction.reply({
                         embeds: [
                             new EmbedBuilder()
-                                .setTitle("Berhasil Mengirim Feedback!")
-                                .setColor(
-                                    interaction.client.config.embed.success
-                                )
+                                .setTitle("Berhasil")
+                                .setColor("Green")
                                 .setDescription(
-                                    `Berhasil merekam dan mengirim feedback mu ke <#1251433593616465920>!`
+                                    `Feedback Anda telah berhasil direkam dan dikirimkan ke <#${interaction.client.config.channel.feedback}>!`
                                 ),
                         ],
-                        flags: MessageFlags.Ephemeral,
-                    });
-                } else {
-                    return interaction.reply({
-                        embeds: [
-                            new EmbedBuilder()
-                                .setTitle("Gagal")
-                                .setColor(interaction.client.config.embed.fail)
-                                .setDescription(
-                                    "Nomor bintang tidak boleh lebih dari 5!"
-                                ),
-                        ],
-                        flags: MessageFlags.Ephemeral,
+                        flags: 64,
                     });
                 }
             }

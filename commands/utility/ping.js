@@ -1,7 +1,6 @@
 const {
     SlashCommandBuilder,
     EmbedBuilder,
-    InteractionContextType,
 } = require("discord.js");
 
 module.exports = {
@@ -10,7 +9,7 @@ module.exports = {
         .setDescription(
             "Menampilkan informasi detail tentang latensi dan status bot"
         )
-        .setContexts(InteractionContextType.Guild),
+        .setContexts(0),
     async execute(interaction) {
         const startTime = Date.now();
 
