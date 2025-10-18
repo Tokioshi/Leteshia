@@ -540,6 +540,8 @@ module.exports = {
             }
 
             if (interaction.customId == "feedback") {
+                await interaction.deferReply({ flags: 64 });
+
                 const message =
                     interaction.fields.getTextInputValue("feedback_message");
                 const star =
@@ -576,7 +578,7 @@ module.exports = {
                             ],
                         });
 
-                    interaction.reply({
+                    interaction.editReply({
                         embeds: [
                             new EmbedBuilder()
                                 .setTitle("Berhasil")
