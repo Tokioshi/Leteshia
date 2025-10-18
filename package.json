@@ -1,13 +1,23 @@
 {
+  "name": "leteshia-bot-discord",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon index.js",
+    "start": "node index.js"
+  },
+  "author": "Tokioshy",
+  "license": "ISC",
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
   "dependencies": {
-    "@google/generative-ai": "^0.24.1",
-    "axios": "^1.12.0",
-    "better-sqlite3": "^12.2.0",
+    "axios": "^1.12.2",
+    "better-sqlite3": "^12.4.1",
     "canvas": "^3.2.0",
     "chalk": "^4.1.2",
-    "discord.js": "^14.22.1",
-    "google-translate-api-x": "^10.7.2",
-    "quick.db": "^9.1.7",
-    "riffy": "^1.0.7"
+    "discord.js": "^14.23.2",
+    "quick.db": "^9.1.7"
   }
 }
