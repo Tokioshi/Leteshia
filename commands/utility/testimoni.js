@@ -1,33 +1,19 @@
 const {
     SlashCommandBuilder,
     EmbedBuilder,
-    AttachmentBuilder,
+    LabelBuilder,
+    ModalBuilder,
+    StringSelectMenuBuilder,
+    StringSelectMenuOptionBuilder,
+    UserSelectMenuBuilder,
+    FileUploadBuilder,
     PermissionFlagsBits,
 } = require("discord.js");
-const axios = require("axios");
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("testimoni")
         .setDescription("Membuat testimoni baru")
-        .addUserOption((option) =>
-            option
-                .setName("customer")
-                .setDescription("Sebutkan pelanggan yang membeli")
-                .setRequired(true)
-        )
-        .addStringOption((option) =>
-            option
-                .setName("product")
-                .setDescription("Sebutkan produk yang dibeli")
-                .setRequired(true)
-        )
-        .addAttachmentOption((option) =>
-            option
-                .setName("screenshot")
-                .setDescription("Screenshot dari produk akhir")
-                .setRequired(true)
-        )
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
         .setContexts(0),
     async execute(interaction) {
@@ -47,65 +33,88 @@ module.exports = {
             });
         }
 
-        await interaction.deferReply({ flags: 64 });
-
-        const user = interaction.options.getUser("customer");
-        const product = interaction.options.getString("product");
-        const ss = interaction.options.getAttachment("screenshot");
-
-        const response = await axios.get(ss.url, {
-            responseType: "arraybuffer",
-        });
-        const file = new AttachmentBuilder(response.data, {
-            name: ss.name || "screenshot.png",
-        });
-
-        await interaction.guild.channels.cache
-            .get(interaction.client.config.channel.testimoni)
-            .send({
-                embeds: [
-                    new EmbedBuilder()
-                        .setAuthor({ name: "Testimoni Pembelian Produk" })
-                        .setColor("Orange")
-                        .setThumbnail(
-                            user.displayAvatarURL({
-                                extension: "png",
-                                size: 512,
-                            })
+        interaction.showModal(
+            new ModalBuilder()
+                .setTitle("Testimoni Form")
+                .setCustomId("testimoni")
+                .addLabelComponents(
+                    new LabelBuilder()
+                        .setLabel("Sebutkan Pelanggan Yang Membeli")
+                        .setUserSelectMenuComponent(
+                            new UserSelectMenuBuilder()
+                                .setCustomId("customer")
+                                .setPlaceholder("Pilih Customer")
                         )
-                        .setFields(
-                            {
-                                name: "Customer",
-                                value: `${user}`,
-                                inline: true,
-                            },
-                            {
-                                name: "Product",
-                                value: `${product}`,
-                                inline: true,
-                            }
+                )
+                .addLabelComponents(
+                    new LabelBuilder()
+                        .setLabel("Sebutkan Produk Yang Dibeli")
+                        .setStringSelectMenuComponent(
+                            new StringSelectMenuBuilder()
+                                .setCustomId("product")
+                                .setPlaceholder("Pilih Paket")
+                                .addOptions(
+                                    new StringSelectMenuOptionBuilder()
+                                        .setLabel("Discord Bot - Basic 1")
+                                        .setValue("Basic 1"),
+                                    new StringSelectMenuOptionBuilder()
+                                        .setLabel("Discord Bot - Basic 2")
+                                        .setValue("Basic 2"),
+                                    new StringSelectMenuOptionBuilder()
+                                        .setLabel("Discord Bot - Basic 3")
+                                        .setValue("Basic 3"),
+                                    new StringSelectMenuOptionBuilder()
+                                        .setLabel(
+                                            "Discord Bot - Intermediate 1"
+                                        )
+                                        .setValue("Intermediate 1"),
+                                    new StringSelectMenuOptionBuilder()
+                                        .setLabel(
+                                            "Discord Bot - Intermediate 2"
+                                        )
+                                        .setValue("Intermediate 2"),
+                                    new StringSelectMenuOptionBuilder()
+                                        .setLabel(
+                                            "Discord Bot - Intermediate 3"
+                                        )
+                                        .setValue("Intermediate 3"),
+                                    new StringSelectMenuOptionBuilder()
+                                        .setLabel("Discord Bot - Advanced 1")
+                                        .setValue("Advanced 1"),
+                                    new StringSelectMenuOptionBuilder()
+                                        .setLabel("Discord Bot - Advanced 2")
+                                        .setValue("Advanced 2"),
+                                    new StringSelectMenuOptionBuilder()
+                                        .setLabel("Discord Bot - Advanced 3")
+                                        .setValue("Advanced 3"),
+                                    new StringSelectMenuOptionBuilder()
+                                        .setLabel(
+                                            "Discord Server - Paket Dasar"
+                                        )
+                                        .setValue("Basic"),
+                                    new StringSelectMenuOptionBuilder()
+                                        .setLabel(
+                                            "Discord Server - Paket Reguler"
+                                        )
+                                        .setValue("Reguler"),
+                                    new StringSelectMenuOptionBuilder()
+                                        .setLabel("Discord Server - Paket Lite")
+                                        .setValue("Lite"),
+                                    new StringSelectMenuOptionBuilder()
+                                        .setLabel(
+                                            "Discord Server - Paket Enterprise"
+                                        )
+                                        .setValue("Enterprise")
+                                )
                         )
-                        .setImage(`attachment://${ss.name || "screenshot.png"}`)
-                        .setFooter({ text: "Waktu Testimoni" })
-                        .setTimestamp(),
-                ],
-                files: [file],
-            });
-
-        await interaction.guild.members.cache
-            .get(user.id)
-            .roles.add(interaction.client.config.role.buyer);
-
-        await interaction.editReply({
-            embeds: [
-                new EmbedBuilder()
-                    .setColor("Green")
-                    .setTitle("Berhasil")
-                    .setDescription(
-                        `Testimonial telah berhasil dikirim ke saluran <#${interaction.client.config.channel.testimoni}>!`
-                    ),
-            ],
-            flags: 64,
-        });
+                )
+                .addLabelComponents(
+                    new LabelBuilder()
+                        .setLabel("Screenshot Dari Produk Akhir")
+                        .setFileUploadComponent(
+                            new FileUploadBuilder().setCustomId("screenshot")
+                        )
+                )
+        );
     },
 };
