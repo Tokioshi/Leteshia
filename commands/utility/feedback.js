@@ -56,19 +56,19 @@ module.exports = {
                                 .addOptions(
                                     new StringSelectMenuOptionBuilder()
                                         .setLabel("⭐ ⭐ ⭐ ⭐ ⭐")
-                                        .setValue("5"),
+                                        .setValue("⭐ ⭐ ⭐ ⭐ ⭐"),
                                     new StringSelectMenuOptionBuilder()
                                         .setLabel("⭐ ⭐ ⭐ ⭐")
-                                        .setValue("4"),
+                                        .setValue("⭐ ⭐ ⭐ ⭐"),
                                     new StringSelectMenuOptionBuilder()
                                         .setLabel("⭐ ⭐ ⭐")
-                                        .setValue("37"),
+                                        .setValue("⭐ ⭐ ⭐"),
                                     new StringSelectMenuOptionBuilder()
                                         .setLabel("⭐ ⭐")
-                                        .setValue("2"),
+                                        .setValue("⭐ ⭐"),
                                     new StringSelectMenuOptionBuilder()
                                         .setLabel("⭐")
-                                        .setValue("1")
+                                        .setValue("⭐")
                                 )
                         )
                 )
