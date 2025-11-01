@@ -7,7 +7,7 @@ const {
     handleAskModal,
     handleDoneModal,
 } = require("../../utils/ticket");
-const { handleCommand } = require("../../utils/interaction");
+const { handleCommand, handleModal } = require("../../utils/interaction");
 const { Events } = require("discord.js");
 
 module.exports = {
@@ -37,6 +37,8 @@ module.exports = {
                 buy: handleBuyModal,
                 ask: handleAskModal,
                 done: handleDoneModal,
+                feedback: handleModal,
+                testimoni: handleModal,
             };
 
             if (modalHandlers[customId]) {
