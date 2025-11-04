@@ -34,7 +34,7 @@ The project is structured as follows:
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-username/leteshia-bot-discord.git
+   git clone https://github.com/tokioshi/Leteshia.git
    ```
 2. Install the dependencies:
     ```bash
