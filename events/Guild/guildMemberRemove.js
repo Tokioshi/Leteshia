@@ -11,20 +11,14 @@ module.exports = {
             const ctx = canvas.getContext("2d");
 
             const background = await loadImage(
-                path.join(
-                    __dirname,
-                    "../../assets/images/goodbye-background.jpg"
-                )
+                path.join(__dirname, "../../assets/images/goodbye-background.jpg"),
             );
 
-            const avatar = await loadImage(
-                user.displayAvatarURL({ extension: "png", size: 256 })
-            );
+            const avatar = await loadImage(user.displayAvatarURL({ extension: "png", size: 256 }));
 
-            registerFont(
-                path.join(__dirname, "../../assets/fonts/Metropolis-Bold.otf"),
-                { family: "Metropolis" }
-            );
+            registerFont(path.join(__dirname, "../../assets/fonts/Metropolis-Bold.otf"), {
+                family: "Metropolis",
+            });
 
             ctx.drawImage(background, 0, 0, canvas.width, canvas.height);
 
@@ -48,14 +42,7 @@ module.exports = {
             ctx.shadowOffsetY = 12;
 
             ctx.beginPath();
-            ctx.arc(
-                centerX,
-                avatarY + avatarSize / 2,
-                avatarSize / 2,
-                0,
-                Math.PI * 2,
-                true
-            );
+            ctx.arc(centerX, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2, true);
             ctx.closePath();
             ctx.clip();
 
@@ -66,31 +53,19 @@ module.exports = {
                 centerX - avatarSize / 2,
                 avatarY,
                 centerX + avatarSize / 2,
-                avatarY + avatarSize
+                avatarY + avatarSize,
             );
             borderGradient.addColorStop(0, "#DC7633");
             borderGradient.addColorStop(0.5, "#E74C3C");
             borderGradient.addColorStop(1, "#DC7633");
 
             ctx.beginPath();
-            ctx.arc(
-                centerX,
-                avatarY + avatarSize / 2,
-                avatarSize / 2 + 4,
-                0,
-                Math.PI * 2
-            );
+            ctx.arc(centerX, avatarY + avatarSize / 2, avatarSize / 2 + 4, 0, Math.PI * 2);
             ctx.lineWidth = 8;
             ctx.strokeStyle = borderGradient;
             ctx.stroke();
 
-            function drawTextWithShadow(
-                text,
-                x,
-                y,
-                fontSize,
-                fontFamily = "Metropolis"
-            ) {
+            function drawTextWithShadow(text, x, y, fontSize, fontFamily = "Metropolis") {
                 ctx.font = `${fontSize}px ${fontFamily}`;
                 ctx.textAlign = "center";
 
@@ -98,12 +73,7 @@ module.exports = {
                 ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
                 ctx.fillText(text, x + 2, y + 2);
 
-                const textGradient = ctx.createLinearGradient(
-                    x - 200,
-                    y - 20,
-                    x + 200,
-                    y + 20
-                );
+                const textGradient = ctx.createLinearGradient(x - 200, y - 20, x + 200, y + 20);
                 textGradient.addColorStop(0, "#FFFFFF");
                 textGradient.addColorStop(0.5, "#FFE4E1");
                 textGradient.addColorStop(1, "#FFF0F5");
@@ -119,7 +89,7 @@ module.exports = {
                 centerX - 100,
                 lineY,
                 centerX + 100,
-                lineY
+                lineY,
             );
             lineGradient.addColorStop(0, "rgba(220, 118, 51, 0)");
             lineGradient.addColorStop(0.5, "#DC7633");
@@ -135,10 +105,10 @@ module.exports = {
             drawTextWithShadow(user.username.toUpperCase(), centerX, 295, 28);
 
             drawTextWithShadow(
-                `SEKARANG TERSISA ${member.guild.memberCount} MEMBER`,
+                `NOW THERE ARE ${member.guild.memberCount} MEMBERS LEFT`,
                 centerX,
                 330,
-                20
+                20,
             );
 
             const badgeY = 365;
@@ -167,10 +137,7 @@ module.exports = {
                     `rgba(255, 165, 0, ${opacity * 0.6})`,
                 ];
 
-                ctx.fillStyle =
-                    sparkleColors[
-                        Math.floor(Math.random() * sparkleColors.length)
-                    ];
+                ctx.fillStyle = sparkleColors[Math.floor(Math.random() * sparkleColors.length)];
                 ctx.beginPath();
                 ctx.arc(x, y, size, 0, Math.PI * 2);
                 ctx.fill();
@@ -188,8 +155,7 @@ module.exports = {
                     const opacity = 0.3 + Math.random() * 0.5;
 
                     const distanceFromAvatar = Math.sqrt(
-                        Math.pow(x - centerX, 2) +
-                            Math.pow(y - (avatarY + avatarSize / 2), 2)
+                        Math.pow(x - centerX, 2) + Math.pow(y - (avatarY + avatarSize / 2), 2),
                     );
 
                     if (distanceFromAvatar > avatarSize / 2 + 20) {
@@ -205,13 +171,11 @@ module.exports = {
                 name: "goodbye.png",
             });
 
-            member.client.channels.cache
-                .get(member.client.config.channel.goodbye)
-                .send({
-                    files: [attachment],
-                });
+            member.client.channels.cache.get(member.client.config.channel.goodbye).send({
+                files: [attachment],
+            });
         } catch (err) {
-            console.error("Gagal buat goodbye card: ", err);
+            console.error(chalk.red("[ERROR]"), chalk.white(err));
         }
     },
 };
