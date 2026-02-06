@@ -1,15 +1,10 @@
-const {
-    SlashCommandBuilder,
-    EmbedBuilder,
-} = require("discord.js");
+const { SlashCommandBuilder, EmbedBuilder, InteractionContextType } = require("discord.js");
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("ping")
-        .setDescription(
-            "Menampilkan informasi detail tentang latensi dan status bot"
-        )
-        .setContexts(0),
+        .setDescription("Check bot latency and status")
+        .setContexts(InteractionContextType.Guild),
     async execute(interaction) {
         const startTime = Date.now();
 
@@ -22,11 +17,7 @@ module.exports = {
 
         const uptime = formatUptime(interaction.client.uptime);
         const serverCount = interaction.client.guilds.cache.size;
-        const memoryUsage = (
-            process.memoryUsage().heapUsed /
-            1024 /
-            1024
-        ).toFixed(2);
+        const memoryUsage = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2);
 
         const embed = new EmbedBuilder()
             .setTitle("🏓 Pong!")
@@ -53,18 +44,13 @@ module.exports = {
                     name: "🔄 OS Uptime",
                     value: `\`${formatUptime(process.uptime() * 1000)}\``,
                     inline: true,
-                }
+                },
             );
 
         await interaction.editReply({ embeds: [embed] });
     },
 };
 
-/**
- *
- * @param {number} ms
- * @returns {string}
- */
 function formatUptime(ms) {
     const seconds = Math.floor((ms / 1000) % 60);
     const minutes = Math.floor((ms / (1000 * 60)) % 60);
@@ -80,11 +66,6 @@ function formatUptime(ms) {
     return parts.join(" ");
 }
 
-/**
- *
- * @param {number} latency
- * @returns {number}
- */
 function getLatensiColor(latency) {
     if (latency < 100) return 0x00ff00;
     if (latency < 200) return 0xffff00;

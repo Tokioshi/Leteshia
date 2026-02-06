@@ -2,40 +2,35 @@ const {
     SlashCommandBuilder,
     EmbedBuilder,
     PermissionFlagsBits,
+    InteractionContextType,
+    MessageFlags,
 } = require("discord.js");
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("reload")
-        .setDescription("Muat ulang perintah tanpa me-restart bot")
+        .setDescription("Reload command without restarting bot")
         .addStringOption((option) =>
-            option
-                .setName("command")
-                .setDescription("Perintah yang ingin dimuat ulang")
-                .setRequired(true)
+            option.setName("command").setDescription("Command to reload").setRequired(true),
         )
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
-        .setContexts(0),
+        .setContexts(InteractionContextType.Guild),
     async execute(interaction) {
-        if (
-            interaction.user.id !== interaction.client.config.developer.tokioshy
-        ) {
+        if (interaction.user.id !== interaction.client.config.developer.tokioshy) {
             return interaction.reply({
                 embeds: [
                     new EmbedBuilder()
                         .setTitle("Failed")
                         .setColor("Red")
-                        .setDescription(
-                            "You are not authorized to execute this command!"
-                        ),
+                        .setDescription("You are not authorized to execute this command!"),
                 ],
-                flags: 64,
+                flags: MessageFlags.Ephemeral,
             });
         }
 
-        const commandName = interaction.options
-            .getString("command")
-            .toLowerCase();
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+        const commandName = interaction.options.getString("command").toLowerCase();
         const command = interaction.client.commands.get(commandName);
 
         if (!command) {
@@ -45,10 +40,9 @@ module.exports = {
                         .setTitle("Failed")
                         .setColor("Yellow")
                         .setDescription(
-                            `Command \`${commandName}\` was not found in the client collection`
+                            `Command \`${commandName}\` was not found in the client collection`,
                         ),
                 ],
-                flags: 64,
             });
         }
 
@@ -67,10 +61,9 @@ module.exports = {
                         .setTitle("Command Reloaded")
                         .setColor("Green")
                         .setDescription(
-                            `Command \`${newCommand.data.name}\` has been successfully reloaded!`
+                            `Command \`${newCommand.data.name}\` has been successfully reloaded!`,
                         ),
                 ],
-                flags: 64,
             });
         } catch (error) {
             console.error(error);
@@ -80,15 +73,12 @@ module.exports = {
                     new EmbedBuilder()
                         .setTitle("🚨 Reload Error")
                         .setColor("Red")
-                        .setDescription(
-                            `Failed to reload command \`${commandName}\`.`
-                        )
+                        .setDescription(`Failed to reload command \`${commandName}\`.`)
                         .addFields({
                             name: "Error Message",
                             value: `\`\`\`${error.message}\`\`\``,
                         }),
                 ],
-                flags: 64,
             });
         }
     },

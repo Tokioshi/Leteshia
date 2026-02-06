@@ -1,16 +1,16 @@
-const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
+const { SlashCommandBuilder, EmbedBuilder, InteractionContextType } = require("discord.js");
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("avatar")
-        .setDescription("Menampilkan avatar pengguna")
+        .setDescription("Show user avatar")
         .addUserOption((option) =>
             option
                 .setName("user")
-                .setDescription("Pilih pengguna untuk menampilkan avatarnya")
-                .setRequired(false)
+                .setDescription("Select user to show their avatar")
+                .setRequired(false),
         )
-        .setContexts(0),
+        .setContexts(InteractionContextType.Guild),
     async execute(interaction) {
         const user = interaction.options.getUser("user") || interaction.user;
 

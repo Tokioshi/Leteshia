@@ -8,28 +8,26 @@ const {
     UserSelectMenuBuilder,
     FileUploadBuilder,
     PermissionFlagsBits,
+    MessageFlags,
+    InteractionContextType,
 } = require("discord.js");
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("testimoni")
-        .setDescription("Membuat testimoni baru")
+        .setDescription("Create a new testimonial")
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
-        .setContexts(0),
+        .setContexts(InteractionContextType.Guild),
     async execute(interaction) {
-        if (
-            interaction.user.id !== interaction.client.config.developer.tokioshy
-        ) {
+        if (interaction.user.id !== interaction.client.config.developer.tokioshy) {
             return interaction.reply({
                 embeds: [
                     new EmbedBuilder()
                         .setColor("Red")
                         .setTitle("Gagal")
-                        .setDescription(
-                            "Anda tidak berwenang untuk menjalankan perintah ini!"
-                        ),
+                        .setDescription("You are not authorized to run this command!"),
                 ],
-                flags: 64,
+                flags: MessageFlags.Ephemeral,
             });
         }
 
@@ -39,20 +37,20 @@ module.exports = {
                 .setCustomId("testimoni")
                 .addLabelComponents(
                     new LabelBuilder()
-                        .setLabel("Sebutkan Pelanggan Yang Membeli")
+                        .setLabel("Mention the customer who bought it")
                         .setUserSelectMenuComponent(
                             new UserSelectMenuBuilder()
                                 .setCustomId("customer")
-                                .setPlaceholder("Pilih Customer")
-                        )
+                                .setPlaceholder("Select Customer"),
+                        ),
                 )
                 .addLabelComponents(
                     new LabelBuilder()
-                        .setLabel("Sebutkan Produk Yang Dibeli")
+                        .setLabel("Mention the product that was bought")
                         .setStringSelectMenuComponent(
                             new StringSelectMenuBuilder()
                                 .setCustomId("product")
-                                .setPlaceholder("Pilih Paket")
+                                .setPlaceholder("Select Package")
                                 .addOptions(
                                     new StringSelectMenuOptionBuilder()
                                         .setLabel("Discord Bot - Basic 1")
@@ -64,19 +62,13 @@ module.exports = {
                                         .setLabel("Discord Bot - Basic 3")
                                         .setValue("Basic 3"),
                                     new StringSelectMenuOptionBuilder()
-                                        .setLabel(
-                                            "Discord Bot - Intermediate 1"
-                                        )
+                                        .setLabel("Discord Bot - Intermediate 1")
                                         .setValue("Intermediate 1"),
                                     new StringSelectMenuOptionBuilder()
-                                        .setLabel(
-                                            "Discord Bot - Intermediate 2"
-                                        )
+                                        .setLabel("Discord Bot - Intermediate 2")
                                         .setValue("Intermediate 2"),
                                     new StringSelectMenuOptionBuilder()
-                                        .setLabel(
-                                            "Discord Bot - Intermediate 3"
-                                        )
+                                        .setLabel("Discord Bot - Intermediate 3")
                                         .setValue("Intermediate 3"),
                                     new StringSelectMenuOptionBuilder()
                                         .setLabel("Discord Bot - Advanced 1")
@@ -88,33 +80,25 @@ module.exports = {
                                         .setLabel("Discord Bot - Advanced 3")
                                         .setValue("Advanced 3"),
                                     new StringSelectMenuOptionBuilder()
-                                        .setLabel(
-                                            "Discord Server - Paket Dasar"
-                                        )
+                                        .setLabel("Discord Server - Basic Package")
                                         .setValue("Basic"),
                                     new StringSelectMenuOptionBuilder()
-                                        .setLabel(
-                                            "Discord Server - Paket Reguler"
-                                        )
+                                        .setLabel("Discord Server - Reguler Package")
                                         .setValue("Reguler"),
                                     new StringSelectMenuOptionBuilder()
-                                        .setLabel("Discord Server - Paket Lite")
+                                        .setLabel("Discord Server - Lite Package")
                                         .setValue("Lite"),
                                     new StringSelectMenuOptionBuilder()
-                                        .setLabel(
-                                            "Discord Server - Paket Enterprise"
-                                        )
-                                        .setValue("Enterprise")
-                                )
-                        )
+                                        .setLabel("Discord Server - Enterprise Package")
+                                        .setValue("Enterprise"),
+                                ),
+                        ),
                 )
                 .addLabelComponents(
                     new LabelBuilder()
-                        .setLabel("Screenshot Dari Produk Akhir")
-                        .setFileUploadComponent(
-                            new FileUploadBuilder().setCustomId("screenshot")
-                        )
-                )
+                        .setLabel("Screenshot of the final product")
+                        .setFileUploadComponent(new FileUploadBuilder().setCustomId("screenshot")),
+                ),
         );
     },
 };

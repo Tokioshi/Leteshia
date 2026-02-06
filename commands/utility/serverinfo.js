@@ -1,15 +1,13 @@
-const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
+const { SlashCommandBuilder, EmbedBuilder, InteractionContextType } = require("discord.js");
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("server")
-        .setDescription("Menampilkan informasi detail tentang server")
+        .setDescription("Check server information")
         .addSubcommand((subcommand) =>
-            subcommand
-                .setName("info")
-                .setDescription("Melihat informasi server")
+            subcommand.setName("info").setDescription("Check server information"),
         )
-        .setContexts(0),
+        .setContexts(InteractionContextType.Guild),
     async execute(interaction) {
         const subcommand = interaction.options.getSubcommand();
 
@@ -46,48 +44,32 @@ module.exports = {
                     },
                     {
                         name: "Category Channels",
-                        value: `${
-                            guild.channels.cache.filter((c) => c.type === 4)
-                                .size
-                        }`,
+                        value: `${guild.channels.cache.filter((c) => c.type === 4).size}`,
                         inline: true,
                     },
                     {
                         name: "Text Channels",
-                        value: `${
-                            guild.channels.cache.filter((c) => c.type === 0)
-                                .size
-                        }`,
+                        value: `${guild.channels.cache.filter((c) => c.type === 0).size}`,
                         inline: true,
                     },
                     {
                         name: "Voice Channels",
-                        value: `${
-                            guild.channels.cache.filter((c) => c.type === 2)
-                                .size
-                        }`,
+                        value: `${guild.channels.cache.filter((c) => c.type === 2).size}`,
                         inline: true,
                     },
                     {
                         name: "Threads",
-                        value: `${
-                            guild.channels.cache.filter((c) => c.isThread())
-                                .size
-                        }`,
+                        value: `${guild.channels.cache.filter((c) => c.isThread()).size}`,
                         inline: true,
                     },
                     {
                         name: "Role List",
-                        value:
-                            rolesMention ||
-                            "There is no role other than @everyone",
-                    }
+                        value: rolesMention || "There is no role other than @everyone",
+                    },
                 )
                 .setFooter({
-                    text: `ID: ${
-                        guild.id
-                    } • Server Created • ${guild.createdAt.toLocaleDateString(
-                        "en-US"
+                    text: `ID: ${guild.id} • Server Created • ${guild.createdAt.toLocaleDateString(
+                        "en-US",
                     )} • ${guild.createdAt.toLocaleTimeString("en-US")}`,
                 });
 

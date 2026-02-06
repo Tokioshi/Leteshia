@@ -1,34 +1,29 @@
-const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
+const { SlashCommandBuilder, EmbedBuilder, InteractionContextType } = require("discord.js");
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("user")
-        .setDescription("Menampilkan informasi detail tentang pengguna")
+        .setDescription("Displaying detailed information about users")
         .addSubcommand((subcommand) =>
             subcommand
                 .setName("info")
-                .setDescription("Melihat informasi pengguna")
+                .setDescription("Displaying user information")
                 .addUserOption((option) =>
                     option
                         .setName("user")
-                        .setDescription(
-                            "Pilih pengguna untuk menampilkan informasi tentangnya."
-                        )
-                        .setRequired(false)
-                )
+                        .setDescription("Select a user to display information about them.")
+                        .setRequired(false),
+                ),
         )
-        .setContexts(0),
+        .setContexts(InteractionContextType.Guild),
     async execute(interaction) {
         const subcommand = interaction.options.getSubcommand();
 
         if (subcommand == "info") {
             await interaction.deferReply();
 
-            const user =
-                interaction.options.getUser("user") || interaction.user;
-            const member = await interaction.guild.members
-                .fetch(user.id)
-                .catch(() => null);
+            const user = interaction.options.getUser("user") || interaction.user;
+            const member = await interaction.guild.members.fetch(user.id).catch(() => null);
 
             const fetchedUser = await user.fetch();
             const banner = fetchedUser.banner;
@@ -44,30 +39,24 @@ module.exports = {
                     {
                         name: "Username",
                         value: `${user.username}${
-                            user.discriminator === "0"
-                                ? ""
-                                : `#${user.discriminator}`
+                            user.discriminator === "0" ? "" : `#${user.discriminator}`
                         }`,
                         inline: true,
                     },
                     {
-                        name: "Akun Dibuat",
+                        name: "Account Created",
                         value: `<t:${Math.floor(
-                            user.createdAt.getTime() / 1000
-                        )}:F> (<t:${Math.floor(
-                            user.createdAt.getTime() / 1000
-                        )}:R>)`,
+                            user.createdAt.getTime() / 1000,
+                        )}:F> (<t:${Math.floor(user.createdAt.getTime() / 1000)}:R>)`,
                         inline: false,
-                    }
+                    },
                 );
 
             if (banner) {
                 embed.setImage(
-                    `https://cdn.discordapp.com/banners/${fetchedUser.id}/${
-                        fetchedUser.banner
-                    }.${
+                    `https://cdn.discordapp.com/banners/${fetchedUser.id}/${fetchedUser.banner}.${
                         fetchedUser.banner.startsWith("a_") ? "gif" : "png"
-                    }?size=4096`
+                    }?size=4096`,
                 );
             }
 
@@ -93,21 +82,17 @@ module.exports = {
 
                 embed.addFields(
                     {
-                        name: "Masuk ke Server",
+                        name: "Joined Server",
                         value: `<t:${Math.floor(
-                            member.joinedAt.getTime() / 1000
-                        )}:F> (<t:${Math.floor(
-                            member.joinedAt.getTime() / 1000
-                        )}:R>)`,
+                            member.joinedAt.getTime() / 1000,
+                        )}:F> (<t:${Math.floor(member.joinedAt.getTime() / 1000)}:R>)`,
                         inline: false,
                     },
-                    { name: "Status Member", value: statusEmoji, inline: true },
+                    { name: "Member Status", value: statusEmoji, inline: true },
                     {
                         name: "Server Booster",
                         value: member.premiumSince
-                            ? `Sejak <t:${Math.floor(
-                                  member.premiumSince.getTime() / 1000
-                              )}:D>`
+                            ? `Since <t:${Math.floor(member.premiumSince.getTime() / 1000)}:D>`
                             : "No",
                         inline: true,
                     },
@@ -116,14 +101,12 @@ module.exports = {
                         value:
                             member.roles.cache.size > 1
                                 ? member.roles.cache
-                                      .filter(
-                                          (role) => role.name !== "@everyone"
-                                      )
+                                      .filter((role) => role.name !== "@everyone")
                                       .map((role) => `<@&${role.id}>`)
                                       .join(", ")
-                                : "Tidak Ada Peran Tertentu",
+                                : "No Specific Role",
                         inline: false,
-                    }
+                    },
                 );
 
                 const memberPermissions = member.permissions.toArray();
@@ -139,10 +122,8 @@ module.exports = {
 
                 if (importantPermissions.length > 0) {
                     embed.addFields({
-                        name: "Izin Utama",
-                        value: importantPermissions
-                            .map((p) => `${p}`)
-                            .join(", "),
+                        name: "Main Permissions",
+                        value: importantPermissions.map((p) => `${p}`).join(", "),
                         inline: false,
                     });
                 }

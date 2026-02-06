@@ -7,29 +7,25 @@ const {
     StringSelectMenuOptionBuilder,
     TextInputBuilder,
     TextInputStyle,
+    InteractionContextType,
+    MessageFlags,
 } = require("discord.js");
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("feedback")
-        .setDescription("Berikan umpan balik setelah membeli produk")
-        .setContexts(0),
+        .setDescription("Provide feedback after purchasing a product")
+        .setContexts(InteractionContextType.Guild),
     async execute(interaction) {
-        if (
-            !interaction.member.roles.cache.has(
-                interaction.client.config.role.buyer
-            )
-        ) {
+        if (!interaction.member.roles.cache.has(interaction.client.config.role.buyer)) {
             return interaction.reply({
                 embeds: [
                     new EmbedBuilder()
                         .setColor("Red")
-                        .setTitle("Gagal")
-                        .setDescription(
-                            "Anda tidak berwenang untuk menjalankan perintah ini!"
-                        ),
+                        .setTitle("Failed")
+                        .setDescription("You are not authorized to execute this command!"),
                 ],
-                flags: 64,
+                flags: MessageFlags.Ephemeral,
             });
         }
 
@@ -39,20 +35,20 @@ module.exports = {
                 .setCustomId("feedback")
                 .addLabelComponents(
                     new LabelBuilder()
-                        .setLabel("Pesan Feedback")
+                        .setLabel("Feedback Message")
                         .setTextInputComponent(
                             new TextInputBuilder()
                                 .setCustomId("feedback_message")
-                                .setStyle(TextInputStyle.Paragraph)
-                        )
+                                .setStyle(TextInputStyle.Paragraph),
+                        ),
                 )
                 .addLabelComponents(
                     new LabelBuilder()
-                        .setLabel("Bintang (1 -  5)")
+                        .setLabel("Star (1 -  5)")
                         .setStringSelectMenuComponent(
                             new StringSelectMenuBuilder()
                                 .setCustomId("feedback_star")
-                                .setPlaceholder("Pilih antara 1 dan 5")
+                                .setPlaceholder("Choose between 1 and 5")
                                 .addOptions(
                                     new StringSelectMenuOptionBuilder()
                                         .setLabel("⭐ ⭐ ⭐ ⭐ ⭐")
@@ -68,10 +64,10 @@ module.exports = {
                                         .setValue("⭐ ⭐"),
                                     new StringSelectMenuOptionBuilder()
                                         .setLabel("⭐")
-                                        .setValue("⭐")
-                                )
-                        )
-                )
+                                        .setValue("⭐"),
+                                ),
+                        ),
+                ),
         );
     },
 };

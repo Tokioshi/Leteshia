@@ -1,12 +1,14 @@
-const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
+const { SlashCommandBuilder, EmbedBuilder, InteractionContextType } = require("discord.js");
 const os = require("os");
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("specification")
-        .setDescription("Periksa spesifikasi bot")
-        .setContexts(0),
+        .setDescription("Check bot specifications")
+        .setContexts(InteractionContextType.Guild),
     async execute(interaction) {
+        await interaction.deferReply();
+
         const uptime = process.uptime();
         const hours = Math.floor(uptime / 3600);
         const minutes = Math.floor((uptime % 3600) / 60);
@@ -17,14 +19,12 @@ module.exports = {
 
         const embed = new EmbedBuilder()
             .setColor("Orange")
-            .setTitle("Periksa spesifikasi bot")
+            .setTitle("Check bot specifications")
             .addFields(
                 { name: "CPU", value: os.cpus()[0].model, inline: false },
                 {
-                    name: "Penggunaan Memori",
-                    value: `${usedMem.toFixed(2)} GB / ${totalMem.toFixed(
-                        2
-                    )} GB`,
+                    name: "Memory Usage",
+                    value: `${usedMem.toFixed(2)} GB / ${totalMem.toFixed(2)} GB`,
                     inline: true,
                 },
                 {
@@ -41,7 +41,7 @@ module.exports = {
                     name: "Node.js Version",
                     value: process.version,
                     inline: true,
-                }
+                },
             )
             .setFooter({
                 text: `API Ping: ${Math.round(interaction.client.ws.ping)} ms`,
