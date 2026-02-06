@@ -10,6 +10,9 @@ const {
 const { handleCommand, handleModal } = require("../../utils/interaction");
 const { Events } = require("discord.js");
 
+const { QuickDB } = require("quick.db");
+const db = new QuickDB();
+
 module.exports = {
     name: Events.InteractionCreate,
     async execute(interaction) {
@@ -43,6 +46,27 @@ module.exports = {
 
             if (modalHandlers[customId]) {
                 await modalHandlers[customId](interaction);
+            }
+        }
+
+        if (interaction.isAutocomplete()) {
+            const command = interaction.commandName;
+
+            if (command === "password") {
+                const focusedValue = interaction.options.getFocused();
+                const userId = interaction.user.id;
+                const dbKey = `password:${userId}`;
+
+                const passwords = (await db.get(dbKey)) || [];
+                const choices = passwords.map((p) => p.name);
+
+                const filtered = choices.filter((choice) =>
+                    choice.toLowerCase().includes(focusedValue.toLowerCase()),
+                );
+
+                await interaction.respond(
+                    filtered.slice(0, 25).map((choice) => ({ name: choice, value: choice })),
+                );
             }
         }
     },
