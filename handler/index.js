@@ -2,6 +2,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const chalk = require("chalk");
 const registerCommands = require("./commands");
+const { Events } = require("discord.js");
 
 module.exports = async (client) => {
     const commandsPath = path.join(__dirname, "../commands");
@@ -12,7 +13,7 @@ module.exports = async (client) => {
             if (!fs.existsSync(dir)) {
                 console.warn(
                     chalk.yellow("[WARNING]"),
-                    chalk.white(`Directory ${dir} does not exist`)
+                    chalk.white(`Directory ${dir} does not exist`),
                 );
                 return;
             }
@@ -33,16 +34,14 @@ module.exports = async (client) => {
                 } catch (error) {
                     console.error(
                         chalk.red("[ERROR]"),
-                        chalk.white(
-                            `Failed to process file ${filePath}: ${error.message}`
-                        )
+                        chalk.white(`Failed to process file ${filePath}: ${error.message}`),
                     );
                 }
             }
         } catch (error) {
             console.error(
                 chalk.red("[ERROR]"),
-                chalk.white(`Failed to read directory ${dir}: ${error.message}`)
+                chalk.white(`Failed to read directory ${dir}: ${error.message}`),
             );
         }
     }
@@ -59,16 +58,14 @@ module.exports = async (client) => {
                 console.log(
                     chalk.yellow("[WARNING]"),
                     chalk.white(
-                        `The command at ${filePath} is missing a required "data" or "execute" property.`
-                    )
+                        `The command at ${filePath} is missing a required "data" or "execute" property.`,
+                    ),
                 );
             }
         } catch (error) {
             console.error(
                 chalk.red("[ERROR]"),
-                chalk.white(
-                    `Failed to load command from ${filePath}: ${error.message}`
-                )
+                chalk.white(`Failed to load command from ${filePath}: ${error.message}`),
             );
         }
     }
@@ -82,8 +79,8 @@ module.exports = async (client) => {
                 console.log(
                     chalk.yellow("[WARNING]"),
                     chalk.white(
-                        `The event at ${filePath} is missing a required "name" or "execute" property.`
-                    )
+                        `The event at ${filePath} is missing a required "name" or "execute" property.`,
+                    ),
                 );
                 return;
             }
@@ -95,9 +92,7 @@ module.exports = async (client) => {
                     } catch (error) {
                         console.error(
                             chalk.red("[ERROR]"),
-                            chalk.white(
-                                `Event ${event.name} execution failed: ${error}`
-                            )
+                            chalk.white(`Event ${event.name} execution failed: ${error}`),
                         );
                     }
                 });
@@ -108,9 +103,7 @@ module.exports = async (client) => {
                     } catch (error) {
                         console.error(
                             chalk.red("[ERROR]"),
-                            chalk.white(
-                                `Event ${event.name} execution failed: ${error}`
-                            )
+                            chalk.white(`Event ${event.name} execution failed: ${error}`),
                         );
                     }
                 });
@@ -118,35 +111,24 @@ module.exports = async (client) => {
         } catch (error) {
             console.error(
                 chalk.red("[ERROR]"),
-                chalk.white(
-                    `Failed to load event from ${filePath}: ${error.message}`
-                )
+                chalk.white(`Failed to load event from ${filePath}: ${error.message}`),
             );
         }
     }
 
-    client.once("clientReady", async () => {
+    client.once(Events.ClientReady, async () => {
         try {
             await registerCommands(client);
         } catch (error) {
-            console.error(
-                chalk.red("[ERROR]"),
-                chalk.white("Failed to register commands:", error)
-            );
+            console.error(chalk.red("[ERROR]"), chalk.white("Failed to register commands:", error));
         }
     });
 
     console.log(chalk.cyan("[INFO]"), chalk.white("Loading commands..."));
     readFilesRecursively(commandsPath, loadCommand);
-    console.log(
-        chalk.green("[SUCCESS]"),
-        chalk.white(`Loaded ${client.commands.size} commands`)
-    );
+    console.log(chalk.green("[SUCCESS]"), chalk.white(`Loaded ${client.commands.size} commands`));
 
     console.log(chalk.cyan("[INFO]"), chalk.white("Loading events..."));
     readFilesRecursively(eventsPath, loadEvent);
-    console.log(
-        chalk.green("[SUCCESS]"),
-        chalk.white("Events loaded successfully")
-    );
+    console.log(chalk.green("[SUCCESS]"), chalk.white("Events loaded successfully"));
 };
