@@ -1,4 +1,4 @@
-const { EmbedBuilder, AttachmentBuilder } = require("discord.js");
+const { EmbedBuilder, AttachmentBuilder, MessageFlags } = require("discord.js");
 const axios = require("axios");
 
 async function handleCommand(interaction) {
@@ -9,10 +9,10 @@ async function handleCommand(interaction) {
                 new EmbedBuilder()
                     .setColor("Red")
                     .setDescription(
-                        `Perintah tidak dikenal \`${interaction.commandName}\`. Mungkin perintah tersebut telah dihapus`
+                        `Unknow command \`${interaction.commandName}\`. The command may have been deleted`,
                     ),
             ],
-            flags: 64,
+            flags: MessageFlags.Ephemeral,
         });
         return;
     }
@@ -20,10 +20,7 @@ async function handleCommand(interaction) {
     try {
         await command.execute(interaction);
     } catch (error) {
-        console.error(
-            `Error executing command ${interaction.commandName}:`,
-            error
-        );
+        console.error(`Error executing command ${interaction.commandName}:`, error);
         await handleCommandError(interaction);
     }
 }
@@ -31,20 +28,18 @@ async function handleCommand(interaction) {
 async function handleCommandError(interaction) {
     const errorEmbed = new EmbedBuilder()
         .setColor("Red")
-        .setDescription(
-            `Terjadi masalah saat menjalankan \`${interaction.commandName}\`.`
-        );
+        .setDescription(`Error executing \`${interaction.commandName}\`.`);
 
     if (!interaction.replied) {
-        await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+        await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
     } else if (interaction.deferred) {
-        await interaction.followUp({ embeds: [errorEmbed], flags: 64 });
+        await interaction.followUp({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
     }
 }
 
 async function handleModal(interaction) {
     if (interaction.customId == "testimoni") {
-        await interaction.deferReply({ flags: 64 });
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
         const userCollection = interaction.fields.getSelectedUsers("customer");
         const product = interaction.fields.getStringSelectValues("product");
@@ -65,13 +60,13 @@ async function handleModal(interaction) {
             .send({
                 embeds: [
                     new EmbedBuilder()
-                        .setAuthor({ name: "Testimoni Pembelian Produk" })
+                        .setAuthor({ name: "Product Purchase Testimonials" })
                         .setColor("Orange")
                         .setThumbnail(
                             user.displayAvatarURL({
                                 extension: "png",
                                 size: 512,
-                            })
+                            }),
                         )
                         .setFields(
                             {
@@ -83,10 +78,10 @@ async function handleModal(interaction) {
                                 name: "Product",
                                 value: `${product}`,
                                 inline: true,
-                            }
+                            },
                         )
                         .setImage(`attachment://${ss.name || "screenshot.png"}`)
-                        .setFooter({ text: "Waktu Testimoni" })
+                        .setFooter({ text: "Testimoni Time" })
                         .setTimestamp(),
                 ],
                 files: [file],
@@ -100,21 +95,19 @@ async function handleModal(interaction) {
             embeds: [
                 new EmbedBuilder()
                     .setColor("Green")
-                    .setTitle("Berhasil")
                     .setDescription(
-                        `Testimonial telah berhasil dikirim ke saluran <#${interaction.client.config.channel.testimoni}>!`
+                        `Testimonial has been successfully sent to <#${interaction.client.config.channel.testimoni}>!`,
                     ),
             ],
-            flags: 64,
+            flags: MessageFlags.Ephemeral,
         });
     }
 
     if (interaction.customId == "feedback") {
-        const message =
-            interaction.fields.getTextInputValue("feedback_message");
+        const message = interaction.fields.getTextInputValue("feedback_message");
         const star = interaction.fields.getStringSelectValues("feedback_star");
 
-        await interaction.deferReply({ flags: 64 });
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
         await interaction.guild.channels.cache
             .get(interaction.client.config.channel.feedback)
@@ -123,24 +116,24 @@ async function handleModal(interaction) {
                     new EmbedBuilder()
                         .setColor("Orange")
                         .setAuthor({
-                            name: `Feedback Dari ${interaction.user.displayName}`,
+                            name: `Feedback From ${interaction.user.displayName}`,
                             iconURL: interaction.user.displayAvatarURL({
                                 size: 512,
                             }),
                         })
                         .addFields(
                             {
-                                name: "Pesan",
+                                name: "Message",
                                 value: message,
                                 inline: false,
                             },
                             {
-                                name: "Bintang",
+                                name: "Star",
                                 value: `${star}`,
                                 inline: true,
-                            }
+                            },
                         )
-                        .setFooter({ text: "Terima kasih atas masukan Anda!" })
+                        .setFooter({ text: "Thank you for your feedback!" })
                         .setTimestamp(),
                 ],
             })
@@ -149,9 +142,8 @@ async function handleModal(interaction) {
                     embeds: [
                         new EmbedBuilder()
                             .setColor("Green")
-                            .setTitle("Berhasil")
                             .setDescription(
-                                `Feedback anda telah terkirim! Terima kasih atas masukan anda`
+                                `Feedback has been successfully sent! Thank you for your feedback!`,
                             ),
                     ],
                 });

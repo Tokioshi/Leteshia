@@ -10,6 +10,7 @@ const {
     LabelBuilder,
     StringSelectMenuBuilder,
     StringSelectMenuOptionBuilder,
+    MessageFlags,
     PermissionFlagsBits,
 } = require("discord.js");
 const { QuickDB } = require("quick.db");
@@ -19,76 +20,71 @@ const chalk = require("chalk");
 async function handleBuyButton(interaction) {
     interaction.showModal(
         new ModalBuilder()
-            .setTitle("Form Tiket")
+            .setTitle("Form Ticket")
             .setCustomId("buy")
             .addLabelComponents(
                 new LabelBuilder()
-                    .setLabel("Membaca Syarat dan Ketentuan")
+                    .setLabel("Read Terms and Conditions")
                     .setStringSelectMenuComponent(createSnKSelectMenu()),
                 new LabelBuilder()
-                    .setLabel("Jasa Yang Mau Dibeli")
-                    .setStringSelectMenuComponent(createServiceSelectMenu())
-            )
+                    .setLabel("Service To Buy")
+                    .setStringSelectMenuComponent(createServiceSelectMenu()),
+            ),
     );
 }
 
 async function handleAskButton(interaction) {
     interaction.showModal(
         new ModalBuilder()
-            .setTitle("Form Tiket")
+            .setTitle("Form Ticket")
             .setCustomId("ask")
             .addLabelComponents(
                 new LabelBuilder()
-                    .setLabel("Hal Yang Ingin Ditanya")
-                    .setStringSelectMenuComponent(createAskSelectMenu())
-            )
+                    .setLabel("What You Want To Ask")
+                    .setStringSelectMenuComponent(createAskSelectMenu()),
+            ),
     );
 }
 
 async function handleDoneButton(interaction) {
-    if (interaction.user.id !== "1010474132753883207") {
+    if (interaction.user.id !== interaction.client.config.developer.tokioshy) {
         return interaction.reply({
             embeds: [
                 new EmbedBuilder()
-                    .setTitle("Gagal")
                     .setColor("Red")
                     .setDescription(
-                        "Button ini hanya bisa diklik oleh Admin! Gunakan tombol disebelah jika ingin menghapus manual!"
+                        "This button can only be clicked by Admin! Use the button next to it if you want to delete manually!",
                     ),
             ],
-            flags: 64,
+            flags: MessageFlags.Ephemeral,
         });
     }
 
     interaction.showModal(
         new ModalBuilder()
             .setCustomId("done")
-            .setTitle("Selesai Orderan")
+            .setTitle("Ticket Closed")
             .addLabelComponents(
                 new LabelBuilder()
-                    .setLabel("Alasan Menutup Tiket")
+                    .setLabel("Reason for Closing the Ticket")
                     .setTextInputComponent(
                         new TextInputBuilder()
                             .setCustomId("reason")
-                            .setStyle(TextInputStyle.Paragraph)
-                    )
-            )
+                            .setStyle(TextInputStyle.Paragraph),
+                    ),
+            ),
     );
 }
 
 async function handleCloseButton(interaction) {
     interaction.channel.delete().then(async (channel) => {
-        await logTicketDeletion(
-            interaction,
-            channel,
-            "Tiket ditutup tanpa alasan"
-        );
+        await logTicketDeletion(interaction, channel, "Ticket closed without reason");
         await db.delete(`ticket:owner:${channel.id}`);
     });
 }
 
 async function handleBuyModal(interaction) {
-    await interaction.deferReply({ flags: 64 });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     const condition = interaction.fields.getStringSelectValues("s&k");
     const service = interaction.fields.getStringSelectValues("service");
 
@@ -103,28 +99,28 @@ async function handleBuyModal(interaction) {
         type: "buy",
         condition,
         service,
-        name: `◜beli-${interaction.user.username}◞`,
-        topic: `Tiket membeli ${interaction.user}`,
-        description: `Di bawah ini adalah informasi dari form yang telah anda buat sebelumnya.\n\`\`\`Jasa yang akan dibeli : ${service}\nSudah membaca S&K     : ${condition}\`\`\`Dengan ini, anda dianggap telah membaca Syarat dan Ketentuan Harmony Hub.`,
+        name: `◜buy-${interaction.user.username}◞`,
+        topic: `Buy Ticket ${interaction.user}`,
+        description: `Below is the information from the form you created before.\`\`\`Service to buy : ${service}\nRead S&K     : ${condition}\`\`\`By this, you are considered to have read the Terms and Conditions of Harmony Hub.`,
     });
 }
 
 async function handleAskModal(interaction) {
-    await interaction.deferReply({ flags: 64 });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     const service = interaction.fields.getStringSelectValues("ask");
 
     await createTicketChannel(interaction, {
         type: "ask",
         service,
-        name: `◜bertanya-${interaction.user.username}◞`,
-        topic: `Tiket bertanya ${interaction.user}`,
-        description: `Silahkan tanya pertanyaan anda disini. Anda diperbolehkan untuk mention <@1010474132753883207> jika diperlukan. Jangan ragu untuk bertanya sebelum membeli!`,
+        name: `ask-${interaction.user.username}◞`,
+        topic: `Ask Ticket ${interaction.user}`,
+        description: `Below is the information from the form you created before.\`\`\`Service to ask : ${service}\`\`\`By this, you are considered to have read the Terms and Conditions of Harmony Hub.`,
     });
 }
 
 async function handleDoneModal(interaction) {
     const pesan = interaction.fields.getTextInputValue("reason");
-    await interaction.reply({ content: "Deleting...", flags: 64 });
+    await interaction.reply({ content: "Deleting...", flags: MessageFlags.Ephemeral });
 
     interaction.channel.delete().then(async (channel) => {
         await logTicketDeletion(interaction, channel, pesan);
@@ -135,60 +131,58 @@ async function handleDoneModal(interaction) {
 function createSnKSelectMenu() {
     return new StringSelectMenuBuilder()
         .setCustomId("s&k")
-        .setPlaceholder("Pilih")
+        .setPlaceholder("Select")
         .addOptions(
             new StringSelectMenuOptionBuilder()
-                .setLabel("Sudah")
-                .setValue("Sudah")
-                .setDescription("Dengan ini, kamu dianggap telah membaca S&K")
+                .setLabel("Have")
+                .setValue("Have")
+                .setDescription(
+                    "By this, you are considered to have read the Terms and Conditions of Harmony Hub",
+                )
                 .setEmoji("✅"),
             new StringSelectMenuOptionBuilder()
-                .setLabel("Belum")
-                .setValue("Belum")
-                .setDescription("Dengan ini, kamu dianggap belum membaca S&K")
-                .setEmoji("❌")
+                .setLabel("Not Yet")
+                .setValue("Not Yet")
+                .setDescription(
+                    "By doing so, you are deemed not to have read the Terms and Conditions.",
+                )
+                .setEmoji("❌"),
         );
 }
 
 function createServiceSelectMenu() {
     return new StringSelectMenuBuilder()
         .setCustomId("service")
-        .setPlaceholder("Pilih")
+        .setPlaceholder("Select")
         .addOptions(
             new StringSelectMenuOptionBuilder()
                 .setLabel("Bot")
                 .setValue("Bot")
-                .setDescription("Pilih ini kalo kamu mau beli jasa bot Discord")
+                .setDescription("Select this if you want to buy Discord bot service")
                 .setEmoji("🤖"),
             new StringSelectMenuOptionBuilder()
                 .setLabel("Server")
                 .setValue("Server")
-                .setDescription(
-                    "Pilih ini kalo kamu mau beli jasa server Discord"
-                )
-                .setEmoji("🗃️")
+                .setDescription("Select this if you want to buy Discord server service")
+                .setEmoji("🗃️"),
         );
 }
 
 function createAskSelectMenu() {
     return new StringSelectMenuBuilder()
         .setCustomId("ask")
-        .setPlaceholder("Pilih")
+        .setPlaceholder("Select")
         .addOptions(
             new StringSelectMenuOptionBuilder()
                 .setLabel("Bot")
                 .setValue("Bot")
-                .setDescription(
-                    "Pilih ini jika ingin bertanya soal Bot Discord"
-                )
+                .setDescription("Select this if you want to ask about Discord bot")
                 .setEmoji("🤖"),
             new StringSelectMenuOptionBuilder()
                 .setLabel("Server")
                 .setValue("Server")
-                .setDescription(
-                    "Pilih ini jika ingin bertanya soal Server Discord"
-                )
-                .setEmoji("🗃️")
+                .setDescription("Select this if you want to ask about Discord server")
+                .setEmoji("🗃️"),
         );
 }
 
@@ -196,10 +190,9 @@ async function createTicketChannel(interaction, options) {
     await interaction.editReply({
         embeds: [
             new EmbedBuilder()
-                .setColor("Orange")
-                .setTitle("Tiket anda sedang dibuat")
+                .setColor("Yellow")
                 .setDescription(
-                    "Harap bersabar! Tiket anda sedang diproses dan akan siap dalam beberapa detik..."
+                    "Please be patient! Your ticket is being processed and will be ready in a few seconds...",
                 ),
         ],
     });
@@ -229,8 +222,8 @@ async function createTicketChannel(interaction, options) {
         const embed = new EmbedBuilder()
             .setTitle(
                 options.type === "buy"
-                    ? `Tiket Untuk Order Jasa`
-                    : `Tiket Untuk Bertanya Soal ${options.service}`
+                    ? `Ticket for Order Service`
+                    : `Ticket for Ask ${options.service}`,
             )
             .setColor("Orange")
             .setDescription(options.description);
@@ -242,14 +235,14 @@ async function createTicketChannel(interaction, options) {
                 new ActionRowBuilder().addComponents(
                     new ButtonBuilder()
                         .setCustomId("done")
-                        .setLabel("Selesai")
+                        .setLabel("Complete")
                         .setEmoji("✅")
                         .setStyle(ButtonStyle.Success),
                     new ButtonBuilder()
                         .setCustomId("close")
-                        .setLabel("Tutup")
+                        .setLabel("Close")
                         .setEmoji("🔒")
-                        .setStyle(ButtonStyle.Danger)
+                        .setStyle(ButtonStyle.Danger),
                 ),
             ],
         });
@@ -259,8 +252,7 @@ async function createTicketChannel(interaction, options) {
             embeds: [
                 new EmbedBuilder()
                     .setColor("Green")
-                    .setTitle("Tiket anda telah dibuat")
-                    .setDescription(`Tiket anda berhasil dibuat di ${channel}`),
+                    .setDescription(`Ticket successfully created in ${channel}`),
             ],
         });
 
@@ -270,44 +262,39 @@ async function createTicketChannel(interaction, options) {
             embeds: [
                 new EmbedBuilder()
                     .setColor("Red")
-                    .setTitle("Tiket anda gagal dibuat")
                     .setDescription(
-                        `Tiket anda gagal dibuat, silahkan hubungi <@1010474132753883207>`
+                        `Ticket failed to create, please contact <@${interaction.client.config.developer.tokioshy}>`,
                     ),
             ],
         });
 
         console.error(
             chalk.redBright("[ERROR]"),
-            chalk.red(`Failed trying to create channel because: `, error)
+            chalk.red(`Failed trying to create channel because: `, error),
         );
     }
 }
 
 async function logTicketDeletion(interaction, channel, reason) {
     const user = await db.get(`ticket:owner:${channel.id}`);
-    const logChannel = interaction.guild.channels.cache.get(
-        interaction.client.config.channel.logs
-    );
+    const logChannel = interaction.guild.channels.cache.get(interaction.client.config.channel.logs);
 
     const embed = new EmbedBuilder()
-        .setTitle("Tiket Dihapus")
+        .setTitle("Ticket Closed")
         .setColor("Orange")
-        .setThumbnail(
-            interaction.user.displayAvatarURL({ extension: "png", size: 512 })
-        )
+        .setThumbnail(interaction.user.displayAvatarURL({ extension: "png", size: 512 }))
         .setFields(
-            { name: "Nama Tiket", value: `${channel.name}`, inline: true },
-            { name: "Pemilik Tiket", value: `<@${user}>`, inline: true },
+            { name: "Ticket Name", value: `${channel.name}`, inline: true },
+            { name: "Ticket Owner", value: `<@${user}>`, inline: true },
             {
-                name: "Ditutup Oleh",
+                name: "Closed By",
                 value: `${interaction.user}`,
                 inline: true,
             },
-            { name: "Alasan", value: reason }
+            { name: "Reason", value: reason },
         )
         .setFooter({
-            text: "Ya udah segitu aja",
+            text: "That's all",
             iconURL: interaction.client.user.displayAvatarURL({
                 extension: "png",
                 size: 512,
