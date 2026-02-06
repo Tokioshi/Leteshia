@@ -1,10 +1,4 @@
-const {
-    Client,
-    GatewayIntentBits,
-    ActivityType,
-    Collection,
-    EmbedBuilder,
-} = require("discord.js");
+const { Client, GatewayIntentBits, ActivityType, Collection } = require("discord.js");
 const chalk = require("chalk");
 
 class Bot extends Client {
@@ -70,48 +64,14 @@ class Bot extends Client {
     }
 
     async shutdown() {
-        console.log(
-            chalk.red("[SHUTDOWN]"),
-            chalk.white("Shutting down bot...")
-        );
+        console.log(chalk.red("[SHUTDOWN]"), chalk.white("Shutting down bot..."));
         try {
-            this.channels.cache.get(this.config.channel.botLogs).send({
-                embeds: [
-                    new EmbedBuilder()
-                        .setAuthor({
-                            name: `${this.user.username} is shutting down`,
-                            iconURL: this.user.displayAvatarURL({
-                                size: 512,
-                            }),
-                        })
-                        .setColor("Red")
-                        .setTitle("Pematian Sistem Telah Dimulai")
-                        .setDescription(
-                            `Bot sedang memulai proses shutdown. Hal ini dapat terjadi karena beberapa alasan, termasuk restart terjadwal atau perintah manual dari pengembang.\n\nHarap diperhatikan bahwa bot akan tidak tersedia untuk beberapa saat.`
-                        )
-                        .addFields(
-                            {
-                                name: "Status",
-                                value: "Beralih ke mode offline...",
-                                inline: true,
-                            },
-                            {
-                                name: "Timestamp",
-                                value: `<t:${Math.floor(Date.now() / 1000)}:R>`,
-                                inline: true,
-                            }
-                        )
-                        .setFooter({ text: "Pemberitahuan Sistem" })
-                        .setTimestamp(),
-                ],
-            });
-
             await this.destroy();
             process.exit(0);
         } catch (error) {
             console.error(
                 chalk.red("[ERROR]"),
-                chalk.white("Error during shutdown: ", error.message)
+                chalk.white("Error during shutdown: ", error.message),
             );
             process.exit(1);
         }
