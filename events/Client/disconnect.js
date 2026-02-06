@@ -9,9 +9,9 @@ module.exports = {
             chalk.yellow("[DISCONNECT]"),
             chalk.white(
                 `Connection lost! Code: ${chalk.yellow(
-                    event.code
-                )} - Reason: ${chalk.cyan(event.reason)}`
-            )
+                    event.code,
+                )} - Reason: ${chalk.cyan(event.reason)}`,
+            ),
         );
     },
 };

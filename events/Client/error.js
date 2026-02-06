@@ -1,4 +1,4 @@
-const chalk = require('chalk');
+const chalk = require("chalk");
 
 module.exports = {
     name: "error",
@@ -6,7 +6,7 @@ module.exports = {
         console.error(
             chalk.red.bold("[CLIENT ERROR]"),
             chalk.white("Client encountered a fatal error: "),
-            error.message || error
+            error.message || error,
         );
     },
 };
