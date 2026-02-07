@@ -85,7 +85,7 @@ async function handleCloseButton(interaction) {
 
 async function handleBuyModal(interaction) {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-    const condition = interaction.fields.getStringSelectValues("s&k");
+    const condition = interaction.fields.getStringSelectValues("s&k")[0];
     const service = interaction.fields.getStringSelectValues("service");
 
     if (condition === "Not Yet") {
