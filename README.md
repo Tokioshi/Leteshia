@@ -43,9 +43,24 @@ The project is structured as follows:
 3. Create a `config.js` file in the root directory and add the following:
     ```javascript
     module.exports = {
-        token: 'YOUR_BOT_TOKEN',
-        // other configuration options
-    };
+      token: "YOUR_BOT_TOKEN",
+      guildId: "GUILD_ID",
+      channel: {
+        testimoni: "CHANNEL_ID",
+        feedback: "CHANNEL_ID",
+        welcome: "CHANNEL_ID",
+        goodbye: "CHANNEL_ID",
+        logs: "CHANNEL_ID",
+        botLogs: "CHANNEL_ID",
+        parent: "CATEGORY_ID",
+     },
+     role: {
+       buyer: "ROLE)ID",
+     },
+     developer: {
+       tokioshy: "YOUR_ID",
+     },
+   };
     ```
 4. Start the bot:
     ```bash
