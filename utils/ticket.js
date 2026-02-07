@@ -88,7 +88,7 @@ async function handleBuyModal(interaction) {
     const condition = interaction.fields.getStringSelectValues("s&k");
     const service = interaction.fields.getStringSelectValues("service");
 
-    if (condition == "Belum") {
+    if (condition === "Not Yet") {
         return interaction.editReply({
             content:
                 "https://cdn.discordapp.com/attachments/1370383277029982259/1427620977906421790/16840053903298082133.gif",
@@ -101,7 +101,7 @@ async function handleBuyModal(interaction) {
         service,
         name: `◜buy-${interaction.user.username}◞`,
         topic: `Buy Ticket ${interaction.user}`,
-        description: `Below is the information from the form you created before.\`\`\`Service to buy : ${service}\nRead S&K     : ${condition}\`\`\`By this, you are considered to have read the Terms and Conditions of Harmony Hub.`,
+        description: `Below is the information from the form you created before.\`\`\`Service to buy : ${service}\nRead S&K       : ${condition}\`\`\`By this, you are considered to have read the Terms and Conditions of Harmony Hub.`,
     });
 }
 
