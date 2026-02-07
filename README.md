@@ -55,7 +55,7 @@ The project is structured as follows:
         parent: "CATEGORY_ID",
      },
      role: {
-       buyer: "ROLE)ID",
+       buyer: "ROLE_ID",
      },
      developer: {
        tokioshy: "YOUR_ID",
