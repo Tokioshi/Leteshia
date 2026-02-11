@@ -1,9 +1,9 @@
 const {
     SlashCommandBuilder,
     EmbedBuilder,
-    PermissionFlagsBits,
     InteractionContextType,
     MessageFlags,
+    PermissionFlagsBits,
 } = require("discord.js");
 
 module.exports = {
@@ -17,10 +17,9 @@ module.exports = {
         .setContexts(InteractionContextType.Guild),
     async execute(interaction) {
         if (interaction.user.id !== interaction.client.config.developer.tokioshy) {
-            return interaction.reply({
+            return interaction.editReply({
                 embeds: [
                     new EmbedBuilder()
-                        .setTitle("Failed")
                         .setColor("Red")
                         .setDescription("You are not authorized to execute this command!"),
                 ],
@@ -34,11 +33,10 @@ module.exports = {
         const command = interaction.client.commands.get(commandName);
 
         if (!command) {
-            return interaction.reply({
+            return interaction.editReply({
                 embeds: [
                     new EmbedBuilder()
-                        .setTitle("Failed")
-                        .setColor("Yellow")
+                        .setColor("Red")
                         .setDescription(
                             `Command \`${commandName}\` was not found in the client collection`,
                         ),
@@ -55,10 +53,9 @@ module.exports = {
             newCommand.path = commandPath;
             interaction.client.commands.set(newCommand.data.name, newCommand);
 
-            await interaction.reply({
+            await interaction.editReply({
                 embeds: [
                     new EmbedBuilder()
-                        .setTitle("Command Reloaded")
                         .setColor("Green")
                         .setDescription(
                             `Command \`${newCommand.data.name}\` has been successfully reloaded!`,
@@ -68,10 +65,9 @@ module.exports = {
         } catch (error) {
             console.error(error);
 
-            await interaction.reply({
+            await interaction.editReply({
                 embeds: [
                     new EmbedBuilder()
-                        .setTitle("🚨 Reload Error")
                         .setColor("Red")
                         .setDescription(`Failed to reload command \`${commandName}\`.`)
                         .addFields({
