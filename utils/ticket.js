@@ -18,31 +18,36 @@ const db = new QuickDB();
 const chalk = require("chalk");
 
 async function handleBuyButton(interaction) {
+    const config = interaction.client.config.ticket.buy;
+
+    const snKComponent = new LabelBuilder()
+        .setLabel("Read Terms and Conditions")
+        .setStringSelectMenuComponent(createSnKSelectMenu());
+
+    const serviceComponent = new LabelBuilder()
+        .setLabel("Service To Buy")
+        .setStringSelectMenuComponent(createServiceSelectMenu(config));
+
     interaction.showModal(
         new ModalBuilder()
-            .setTitle("Form Ticket")
-            .setCustomId("buy")
-            .addLabelComponents(
-                new LabelBuilder()
-                    .setLabel("Read Terms and Conditions")
-                    .setStringSelectMenuComponent(createSnKSelectMenu()),
-                new LabelBuilder()
-                    .setLabel("Service To Buy")
-                    .setStringSelectMenuComponent(createServiceSelectMenu()),
-            ),
+            .setTitle(config.modalTitle)
+            .setCustomId(config.customId)
+            .addLabelComponents(snKComponent, serviceComponent),
     );
 }
 
 async function handleAskButton(interaction) {
+    const config = interaction.client.config.ticket.ask;
+
+    const askComponent = new LabelBuilder()
+        .setLabel("What You Want To Ask")
+        .setStringSelectMenuComponent(createServiceSelectMenu(config));
+
     interaction.showModal(
         new ModalBuilder()
-            .setTitle("Form Ticket")
-            .setCustomId("ask")
-            .addLabelComponents(
-                new LabelBuilder()
-                    .setLabel("What You Want To Ask")
-                    .setStringSelectMenuComponent(createAskSelectMenu()),
-            ),
+            .setTitle(config.modalTitle)
+            .setCustomId(config.customId)
+            .addLabelComponents(askComponent),
     );
 }
 
@@ -77,16 +82,17 @@ async function handleDoneButton(interaction) {
 }
 
 async function handleCloseButton(interaction) {
-    interaction.channel.delete().then(async (channel) => {
-        await logTicketDeletion(interaction, channel, "Ticket closed without reason");
-        await db.delete(`ticket:owner:${channel.id}`);
-    });
+    await deleteTicket(interaction, "Ticket closed without reason");
 }
 
 async function handleBuyModal(interaction) {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-    const condition = interaction.fields.getStringSelectValues("s&k")[0];
-    const service = interaction.fields.getStringSelectValues("service");
+
+    const snKFields = interaction.fields.getStringSelectValues("s&k");
+    const serviceFields = interaction.fields.getStringSelectValues("service");
+
+    const condition = snKFields ? snKFields[0] : "Unknown";
+    const service = serviceFields ? serviceFields[0] : "Unknown";
 
     if (condition === "Not Yet") {
         return interaction.editReply({
@@ -101,31 +107,45 @@ async function handleBuyModal(interaction) {
         service,
         name: `◜buy-${interaction.user.username}◞`,
         topic: `Buy Ticket ${interaction.user}`,
-        description: `Below is the information from the form you created before.\`\`\`Service to buy : ${service}\nRead S&K       : ${condition}\`\`\`By this, you are considered to have read the Terms and Conditions of Harmony Hub.`,
+        description: `Below is the information from the form you created before.\`\`\`Service to buy : ${service}\nRead TOS       : ${condition}\`\`\``,
     });
 }
 
 async function handleAskModal(interaction) {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-    const service = interaction.fields.getStringSelectValues("ask");
+
+    const askFields = interaction.fields.getStringSelectValues("ask");
+    const service = askFields ? askFields[0] : "Unknown";
 
     await createTicketChannel(interaction, {
         type: "ask",
         service,
-        name: `ask-${interaction.user.username}◞`,
+        name: `◜ask-${interaction.user.username}◞`,
         topic: `Ask Ticket ${interaction.user}`,
-        description: `Below is the information from the form you created before.\`\`\`Service to ask : ${service}\`\`\`By this, you are considered to have read the Terms and Conditions of Harmony Hub.`,
+        description: `Below is the information from the form you created before.\`\`\`Service to ask : ${service}\`\`\``,
     });
 }
 
 async function handleDoneModal(interaction) {
     const pesan = interaction.fields.getTextInputValue("reason");
     await interaction.reply({ content: "Deleting...", flags: MessageFlags.Ephemeral });
+    await deleteTicket(interaction, pesan);
+}
 
-    interaction.channel.delete().then(async (channel) => {
-        await logTicketDeletion(interaction, channel, pesan);
-        await db.delete(`ticket:owner:${channel.id}`);
-    });
+async function deleteTicket(interaction, reason) {
+    const channel = interaction.channel;
+
+    if (!channel) return;
+
+    interaction.channel
+        .delete()
+        .then(async (channel) => {
+            await logTicketDeletion(interaction, channel, reason);
+            await db.delete(`ticket:owner:${channel.id}`);
+        })
+        .catch((error) => {
+            console.error(chalk.red("Failed to delete ticket channel: ", error));
+        });
 }
 
 function createSnKSelectMenu() {
@@ -150,40 +170,20 @@ function createSnKSelectMenu() {
         );
 }
 
-function createServiceSelectMenu() {
-    return new StringSelectMenuBuilder()
-        .setCustomId("service")
-        .setPlaceholder("Select")
-        .addOptions(
-            new StringSelectMenuOptionBuilder()
-                .setLabel("Bot")
-                .setValue("Bot")
-                .setDescription("Select this if you want to buy Discord bot service")
-                .setEmoji("🤖"),
-            new StringSelectMenuOptionBuilder()
-                .setLabel("Server")
-                .setValue("Server")
-                .setDescription("Select this if you want to buy Discord server service")
-                .setEmoji("🗃️"),
-        );
-}
+function createServiceSelectMenu(config) {
+    const menu = new StringSelectMenuBuilder()
+        .setCustomId(config.serviceCustomId)
+        .setPlaceholder(config.selectPlaceholder);
 
-function createAskSelectMenu() {
-    return new StringSelectMenuBuilder()
-        .setCustomId("ask")
-        .setPlaceholder("Select")
-        .addOptions(
-            new StringSelectMenuOptionBuilder()
-                .setLabel("Bot")
-                .setValue("Bot")
-                .setDescription("Select this if you want to ask about Discord bot")
-                .setEmoji("🤖"),
-            new StringSelectMenuOptionBuilder()
-                .setLabel("Server")
-                .setValue("Server")
-                .setDescription("Select this if you want to ask about Discord server")
-                .setEmoji("🗃️"),
-        );
+    const options = config.options.map((opt) =>
+        new StringSelectMenuOptionBuilder()
+            .setLabel(opt.label)
+            .setValue(opt.value)
+            .setDescription(opt.description)
+            .setEmoji(opt.emoji),
+    );
+
+    return menu.addOptions(options);
 }
 
 async function createTicketChannel(interaction, options) {
@@ -219,32 +219,31 @@ async function createTicketChannel(interaction, options) {
             ],
         });
 
+        const embedTitle =
+            options.type === "buy"
+                ? "Ticket for Order Service"
+                : `Ticket for Ask ${options.service}`;
+
         const embed = new EmbedBuilder()
-            .setTitle(
-                options.type === "buy"
-                    ? `Ticket for Order Service`
-                    : `Ticket for Ask ${options.service}`,
-            )
+            .setTitle(embedTitle)
             .setColor("Orange")
             .setDescription(options.description);
+
+        const components = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+                .setCustomId("done")
+                .setLabel("Complete")
+                .setStyle(ButtonStyle.Success),
+            new ButtonBuilder()
+                .setCustomId("close")
+                .setLabel("Close")
+                .setStyle(ButtonStyle.Danger),
+        );
 
         const message = await channel.send({
             content: `${interaction.user}`,
             embeds: [embed],
-            components: [
-                new ActionRowBuilder().addComponents(
-                    new ButtonBuilder()
-                        .setCustomId("done")
-                        .setLabel("Complete")
-                        .setEmoji("✅")
-                        .setStyle(ButtonStyle.Success),
-                    new ButtonBuilder()
-                        .setCustomId("close")
-                        .setLabel("Close")
-                        .setEmoji("🔒")
-                        .setStyle(ButtonStyle.Danger),
-                ),
-            ],
+            components: [components],
         });
         await message.pin();
 
@@ -279,13 +278,15 @@ async function logTicketDeletion(interaction, channel, reason) {
     const user = await db.get(`ticket:owner:${channel.id}`);
     const logChannel = interaction.guild.channels.cache.get(interaction.client.config.channel.logs);
 
+    if (!logChannel) return;
+
     const embed = new EmbedBuilder()
         .setTitle("Ticket Closed")
         .setColor("Orange")
         .setThumbnail(interaction.user.displayAvatarURL({ extension: "png", size: 512 }))
         .setFields(
             { name: "Ticket Name", value: `${channel.name}`, inline: true },
-            { name: "Ticket Owner", value: `<@${user}>`, inline: true },
+            { name: "Ticket Owner", value: user ? `<@${user}>` : "Unknown", inline: true },
             {
                 name: "Closed By",
                 value: `${interaction.user}`,
