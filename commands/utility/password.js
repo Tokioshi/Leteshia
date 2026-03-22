@@ -108,7 +108,12 @@ module.exports = {
             }
 
             return interaction.editReply({
-                content: `**${result.name}** : ||${result.password}||`,
+                embeds: [
+                    new EmbedBuilder()
+                        .setColor("Blue")
+                        .setTitle(result.name)
+                        .setDescription(`\`\`\`\n${result.password}\`\`\``),
+                ],
             });
         }
 
