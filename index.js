@@ -8,6 +8,7 @@ class Bot extends Client {
                 GatewayIntentBits.Guilds,
                 GatewayIntentBits.GuildMembers,
                 GatewayIntentBits.GuildPresences,
+                GatewayIntentBits.GuildVoiceStates,
             ],
             presence: {
                 activities: [
