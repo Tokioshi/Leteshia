@@ -13,8 +13,9 @@ class Bot extends Client {
             presence: {
                 activities: [
                     {
-                        type: ActivityType.Listening,
-                        name: "Your Order!",
+                        type: ActivityType.Custom,
+                        name: "custom",
+                        state: "Please Get a Job!",
                     },
                 ],
             },
