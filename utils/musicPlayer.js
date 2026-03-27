@@ -5,13 +5,27 @@ const {
     AudioPlayerStatus,
     NoSubscriberBehavior,
 } = require("@discordjs/voice");
-const { EmbedBuilder, AttachmentBuilder } = require("discord.js");
+const {
+    EmbedBuilder,
+    AttachmentBuilder,
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle,
+} = require("discord.js");
 const fs = require("node:fs");
 const path = require("node:path");
 const { execFile } = require("child_process");
 const chalk = require("chalk");
+const ffprobePath = resolveFfprobePath();
 
 const MUSIC_FOLDER = path.join(__dirname, "../assets/music");
+
+let player = null;
+let connection = null;
+let currentSongIndex = 0;
+let playlist = [];
+let nowPlayingMessage = null;
+
 function resolveFfprobePath() {
     try {
         return require("@ffprobe-installer/ffprobe").path;
@@ -26,12 +40,45 @@ function resolveFfprobePath() {
     return "ffprobe";
 }
 
-const ffprobePath = resolveFfprobePath();
+function getControlRow() {
+    const isPaused = player?.state?.status === AudioPlayerStatus.Paused;
 
-let player = null;
-let connection = null;
-let currentSongIndex = 0;
-let playlist = [];
+    return new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId("lofi_pause")
+            .setLabel(isPaused ? "Resume" : "Pause")
+            .setStyle(ButtonStyle.Success),
+        new ButtonBuilder()
+            .setCustomId("lofi_previous")
+            .setLabel("Previous")
+            .setStyle(ButtonStyle.Primary),
+        new ButtonBuilder().setCustomId("lofi_next").setLabel("Next").setStyle(ButtonStyle.Primary),
+        new ButtonBuilder()
+            .setCustomId("lofi_queue")
+            .setLabel("Show Queue")
+            .setStyle(ButtonStyle.Secondary),
+    );
+}
+
+function togglePause() {
+    if (!player || !player.state) return false;
+
+    if (player.state.status === AudioPlayerStatus.Paused) {
+        player.unpause();
+        return true;
+    } else if (player.state.status === AudioPlayerStatus.Playing) {
+        player.pause();
+        return false;
+    }
+    return false;
+}
+
+function stopMusic() {
+    player?.stop();
+    connection?.destroy();
+    player = null;
+    connection = null;
+}
 
 async function getDuration(filePath) {
     return new Promise((resolve) => {
@@ -97,36 +144,6 @@ async function getMetadata(filePath) {
     }
 }
 
-async function sendLog(client, song) {
-    const logChannel = client.channels.cache.get(client.config.channel.logChannel);
-    if (!logChannel?.isTextBased()) return;
-
-    const embed = new EmbedBuilder()
-        .setColor(0x5865f2)
-        .setAuthor({ name: "🎵 Now Playing" })
-        .setTitle(song.name)
-        .addFields(
-            { name: "👤 Artist", value: song.meta.artist, inline: true },
-            { name: "💿 Album", value: song.meta.album, inline: true },
-            { name: "⏱️ Duration", value: song.duration, inline: true },
-        )
-        .setFooter({ text: "🔁 Local playlist is looping" })
-        .setTimestamp();
-
-    if (song.meta.year) {
-        embed.addFields({ name: "📅 Year", value: song.meta.year, inline: true });
-    }
-
-    if (song.meta.cover) {
-        const ext = song.meta.coverMime.split("/")[1] || "jpg";
-        const attachment = new AttachmentBuilder(song.meta.cover, { name: `cover.${ext}` });
-        embed.setThumbnail(`attachment://cover.${ext}`);
-        await logChannel.send({ embeds: [embed], files: [attachment] }).catch(() => {});
-    } else {
-        await logChannel.send({ embeds: [embed] }).catch(() => {});
-    }
-}
-
 async function loadPlaylist() {
     const files = fs.readdirSync(MUSIC_FOLDER).filter((file) => file.endsWith(".mp3"));
 
@@ -148,7 +165,7 @@ async function loadPlaylist() {
     );
 }
 
-async function playSong(index, client) {
+async function playSong(index, client, requestedBy = "Playlist") {
     const song = playlist[index];
     const filePath = path.join(MUSIC_FOLDER, `${song.name}.mp3`);
 
@@ -156,19 +173,31 @@ async function playSong(index, client) {
     player.play(resource);
     currentSongIndex = index;
 
-    await sendLog(client, song);
+    await updateNowPlayingLog(client, song, requestedBy);
 }
 
-async function playNext(client) {
+async function playNext(client, requestedBy = "Playlist") {
     const nextIndex = (currentSongIndex + 1) % playlist.length;
-    await playSong(nextIndex, client);
+    await playSong(nextIndex, client, requestedBy);
 }
 
-function stopMusic() {
-    player?.stop();
-    connection?.destroy();
-    player = null;
-    connection = null;
+async function getCurrentSong() {
+    if (!playlist.length || currentSongIndex < 0) {
+        return null;
+    }
+
+    const song = playlist[currentSongIndex];
+    if (!song) return null;
+
+    const filePath = path.join(MUSIC_FOLDER, `${song.name}.mp3`);
+
+    return {
+        ...song,
+        filePath,
+        index: currentSongIndex,
+        totalSongs: playlist.length,
+        isPlaying: player?.state?.status === AudioPlayerStatus.Playing,
+    };
 }
 
 async function initMusicPlayer(client) {
@@ -181,6 +210,8 @@ async function initMusicPlayer(client) {
     }
 
     await loadPlaylist();
+
+    await fetchExistingNowPlayingMessage(client);
 
     connection = joinVoiceChannel({
         channelId: voiceChannel.id,
@@ -195,7 +226,9 @@ async function initMusicPlayer(client) {
     connection.subscribe(player);
     await playSong(0, client);
 
-    player.on(AudioPlayerStatus.Idle, () => playNext(client));
+    player.on(AudioPlayerStatus.Idle, () => playNext(client, "Playlist"));
+
+    module.exports.getCurrentSong = getCurrentSong;
 
     player.on("error", (error) => {
         console.error(chalk.red("[ERROR]"), chalk.white(`Player error: ${error.message}`));
@@ -203,11 +236,166 @@ async function initMusicPlayer(client) {
     });
 }
 
+async function getSongByName(songName) {
+    if (!playlist.length) {
+        await loadPlaylist();
+    }
+
+    const normalizedName = songName.toLowerCase().trim();
+
+    let found = playlist.find((song) => song.name.toLowerCase() === normalizedName);
+
+    if (!found) {
+        found = playlist.find((song) => song.name.toLowerCase().includes(normalizedName));
+    }
+
+    return found || null;
+}
+
+async function isBotInVoice(client) {
+    const guild = client.guilds.cache.get(client.config.guildId);
+    if (!guild) return false;
+
+    const voiceChannel = guild.channels.cache.get(client.config.channel.voiceChannel);
+    if (!voiceChannel) return false;
+
+    return voiceChannel.members.has(client.user.id);
+}
+
+async function joinAndPlayFrom(songName, client, user) {
+    const guild = client.guilds.cache.get(client.config.guildId);
+    if (!guild) throw new Error("Guild not found");
+
+    const voiceChannel = guild.channels.cache.get(client.config.channel.voiceChannel);
+    if (!voiceChannel || voiceChannel.type !== 2) {
+        throw new Error("Voice channel not found or invalid");
+    }
+
+    connection = joinVoiceChannel({
+        channelId: voiceChannel.id,
+        guildId: guild.id,
+        adapterCreator: guild.voiceAdapterCreator,
+    });
+
+    if (!player) {
+        player = createAudioPlayer({
+            behaviors: { noSubscriber: NoSubscriberBehavior.Pause },
+        });
+        connection.subscribe(player);
+
+        player.on(AudioPlayerStatus.Idle, () => playNext(client));
+        player.on("error", (error) => {
+            console.error(chalk.red("[ERROR]"), chalk.white(`Player error: ${error.message}`));
+            playNext(client);
+        });
+    }
+
+    const song = await getSongByName(songName);
+    if (!song) throw new Error(`Song "${songName}" not found`);
+
+    const requestBy = user || "Playlist";
+
+    const index = playlist.findIndex((s) => s.name === song.name);
+    await playSong(index, client, requestBy);
+
+    return song;
+}
+
+async function updateNowPlayingLog(client, song, requestedBy = "Playlist") {
+    const logChannel = client.channels.cache.get(client.config.channel.logChannel);
+    if (!logChannel?.isTextBased()) return;
+
+    const linkField = song.meta.source ? `[Click Here](${song.meta.source})` : "—";
+
+    const embed = new EmbedBuilder()
+        .setColor(12928528)
+        .setTitle(song.name)
+        .setAuthor({ name: "🎵 Now Playing" })
+        .setThumbnail(
+            song.meta.cover
+                ? `attachment://cover.${song.meta.coverMime.split("/")[1] || "jpg"}`
+                : null,
+        )
+        .setFooter({ text: "🔁 Local playlist is looping" })
+        .setTimestamp()
+        .setFields(
+            { name: "👤 Artist", value: song.meta.artist || "Unknown", inline: true },
+            { name: "💿 Album", value: song.meta.album || "Unknown", inline: true },
+            { name: "⌚ Duration", value: song.duration || "Unknown", inline: true },
+            { name: "📅 Year", value: song.meta.year || "—", inline: true },
+            { name: "🔗 Link", value: linkField, inline: true },
+            { name: "✋ Requested", value: requestedBy, inline: true },
+        );
+
+    const row = getControlRow();
+
+    const files = song.meta.cover
+        ? [
+              new AttachmentBuilder(song.meta.cover, {
+                  name: `cover.${song.meta.coverMime.split("/")[1] || "jpg"}`,
+              }),
+          ]
+        : [];
+
+    if (!nowPlayingMessage) {
+        await fetchExistingNowPlayingMessage(client);
+    }
+
+    if (nowPlayingMessage) {
+        try {
+            await nowPlayingMessage.edit({ embeds: [embed], components: [row], files });
+            return;
+        } catch (error) {
+            console.warn(
+                chalk.yellow("[WARN]"),
+                chalk.white("Failed to edit existing message, will create new one"),
+            );
+            nowPlayingMessage = null;
+        }
+    }
+
+    nowPlayingMessage = await logChannel.send({ embeds: [embed], components: [row], files });
+    console.log(chalk.yellow("[INFO]"), chalk.white("Created new Now Playing message as fallback"));
+}
+
+async function fetchExistingNowPlayingMessage(client) {
+    if (nowPlayingMessage) return nowPlayingMessage;
+
+    try {
+        const logChannel = client.channels.cache.get(client.config.channel.logChannel);
+        if (!logChannel?.isTextBased()) return null;
+
+        nowPlayingMessage = await logChannel.messages.fetch(client.config.channel.updateId);
+        return nowPlayingMessage;
+    } catch (error) {
+        console.warn(
+            chalk.yellow("[WARN]"),
+            chalk.white(
+                `Could not fetch existing Now Playing message (${client.config.channel.updateId}). Will create new one if needed.`,
+            ),
+        );
+        nowPlayingMessage = null;
+        return null;
+    }
+}
+
+async function playPrevious(client, requestedBy = "Playlist") {
+    if (!playlist.length) return;
+    const prevIndex = (currentSongIndex - 1 + playlist.length) % playlist.length;
+    await playSong(prevIndex, client, requestedBy);
+}
+
 module.exports = {
     initMusicPlayer,
     stopMusic,
     playSong,
     playNext,
+    playPrevious,
+    getCurrentSong,
     getPlaylist: () => playlist,
-    getCurrentSong: () => playlist[currentSongIndex] ?? null,
+    getSongByName,
+    joinAndPlayFrom,
+    isBotInVoice,
+    updateNowPlayingLog,
+    togglePause,
 };
