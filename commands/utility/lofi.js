@@ -7,6 +7,45 @@ const {
 const { playNext, joinAndPlayFrom, isBotInVoice } = require("../../utils/musicPlayer");
 const chalk = require("chalk");
 
+function ephemeralEmbed(color, description) {
+    return {
+        embeds: [new EmbedBuilder().setColor(color).setDescription(description)],
+        flags: MessageFlags.Ephemeral,
+    };
+}
+
+async function handleSkip(interaction) {
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    await playNext(interaction.client, interaction.user.toString());
+    await interaction.editReply(ephemeralEmbed("Green", "⏭️ Skipped to the next song!"));
+}
+
+async function handlePlay(interaction) {
+    const isInVoice = await isBotInVoice(interaction.client);
+
+    if (isInVoice) {
+        return interaction.reply(
+            ephemeralEmbed(
+                "Red",
+                "Bot is already in the voice channel.\nUse `/lofi skip` to change song instead.",
+            ),
+        );
+    }
+
+    const songInput = interaction.options.getString("song");
+
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    await joinAndPlayFrom(songInput, interaction.client, interaction.user.toString());
+    await interaction.editReply(
+        ephemeralEmbed("Green", "▶️ Successfully playing the requested song!"),
+    );
+}
+
+const SUBCOMMAND_HANDLERS = {
+    skip: handleSkip,
+    play: handlePlay,
+};
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("lofi")
@@ -27,53 +66,22 @@ module.exports = {
                 ),
         )
         .setContexts(InteractionContextType.Guild),
+
     async execute(interaction) {
         const subcommand = interaction.options.getSubcommand();
+        const handler = SUBCOMMAND_HANDLERS[subcommand];
+
+        if (!handler) return;
+
+        let deferred = false;
+        const originalDeferReply = interaction.deferReply.bind(interaction);
+        interaction.deferReply = async (...args) => {
+            deferred = true;
+            return originalDeferReply(...args);
+        };
 
         try {
-            if (subcommand === "skip") {
-                await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-
-                await playNext(interaction.client, interaction.user.toString());
-
-                await interaction.editReply({
-                    embeds: [
-                        new EmbedBuilder()
-                            .setColor("Green")
-                            .setDescription("The music has been skipped to the next song!"),
-                    ],
-                });
-            }
-
-            if (subcommand === "play") {
-                const songInput = interaction.options.getString("song");
-
-                const isInVoice = await isBotInVoice(interaction.client);
-                if (isInVoice) {
-                    return interaction.reply({
-                        embeds: [
-                            new EmbedBuilder()
-                                .setColor("Red")
-                                .setDescription(
-                                    "Bot is already in the voice channel.\nUse `/lofi skip` to change song instead.",
-                                ),
-                        ],
-                        flags: MessageFlags.Ephemeral,
-                    });
-                }
-
-                await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-
-                await joinAndPlayFrom(songInput, interaction.client, interaction.user.toString());
-
-                await interaction.editReply({
-                    embeds: [
-                        new EmbedBuilder()
-                            .setColor("Green")
-                            .setDescription("Successfully play the requested song!"),
-                    ],
-                });
-            }
+            await handler(interaction);
         } catch (error) {
             console.error(
                 chalk.red("[ERROR]"),
@@ -81,14 +89,16 @@ module.exports = {
                 error,
             );
 
-            await interaction.reply({
-                embeds: [
-                    new EmbedBuilder()
-                        .setColor("Red")
-                        .setDescription("Failed to execute command. Please contact the developer."),
-                ],
-                flags: MessageFlags.Ephemeral,
-            });
+            const errorPayload = ephemeralEmbed(
+                "Red",
+                "Failed to execute command. Please contact the developer.",
+            );
+
+            if (deferred) {
+                await interaction.editReply(errorPayload).catch(() => {});
+            } else {
+                await interaction.reply(errorPayload).catch(() => {});
+            }
         }
     },
 };

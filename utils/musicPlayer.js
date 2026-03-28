@@ -16,32 +16,44 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { execFile } = require("child_process");
 const chalk = require("chalk");
-const ffprobePath = resolveFfprobePath();
 
 const MUSIC_FOLDER = path.join(__dirname, "../assets/music");
+const EMBED_COLOR = 12928528;
+const FFPROBE_PATH = resolveFfprobePath();
 
-let player = null;
-let connection = null;
-let currentSongIndex = 0;
-let playlist = [];
-let nowPlayingMessage = null;
+const state = {
+    player: null,
+    connection: null,
+    currentSongIndex: 0,
+    playlist: [],
+    nowPlayingMessage: null,
+    playlistLoaded: false,
+};
 
 function resolveFfprobePath() {
-    try {
-        return require("@ffprobe-installer/ffprobe").path;
-    } catch {}
-    try {
-        return require("ffprobe-static").path;
-    } catch {}
-    try {
-        const ffmpegPath = require("ffmpeg-static");
-        return ffmpegPath.replace(/ffmpeg(\.exe)?$/i, "ffprobe$1");
-    } catch {}
+    const candidates = [
+        () => require("@ffprobe-installer/ffprobe").path,
+        () => require("ffprobe-static").path,
+        () => require("ffmpeg-static").replace(/ffmpeg(\.exe)?$/i, "ffprobe$1"),
+    ];
+
+    for (const candidate of candidates) {
+        try {
+            return candidate();
+        } catch {}
+    }
+
     return "ffprobe";
 }
 
+const log = {
+    info: (msg) => console.log(chalk.yellow("[INFO]"), chalk.white(msg)),
+    warn: (msg) => console.warn(chalk.yellow("[WARN]"), chalk.white(msg)),
+    error: (msg) => console.error(chalk.red("[ERROR]"), chalk.white(msg)),
+};
+
 function getControlRow() {
-    const isPaused = player?.state?.status === AudioPlayerStatus.Paused;
+    const isPaused = state.player?.state?.status === AudioPlayerStatus.Paused;
 
     return new ActionRowBuilder().addComponents(
         new ButtonBuilder()
@@ -60,48 +72,58 @@ function getControlRow() {
     );
 }
 
-function togglePause() {
-    if (!player || !player.state) return false;
+function buildNowPlayingEmbed(song, requestedBy) {
+    const coverExt = song.meta.coverMime?.split("/")[1] || "jpg";
+    const thumbnail = song.meta.cover ? `attachment://cover.${coverExt}` : null;
+    const linkField = song.meta.source ? `[Click Here](${song.meta.source})` : "—";
 
-    if (player.state.status === AudioPlayerStatus.Paused) {
-        player.unpause();
-        return true;
-    } else if (player.state.status === AudioPlayerStatus.Playing) {
-        player.pause();
-        return false;
-    }
-    return false;
+    return new EmbedBuilder()
+        .setColor(EMBED_COLOR)
+        .setTitle(song.name)
+        .setAuthor({ name: "🎵 Now Playing" })
+        .setThumbnail(thumbnail)
+        .setFooter({ text: "🔁 Local playlist is looping" })
+        .setTimestamp()
+        .setFields(
+            { name: "👤 Artist", value: song.meta.artist || "Unknown", inline: true },
+            { name: "💿 Album", value: song.meta.album || "Unknown", inline: true },
+            { name: "⌚ Duration", value: song.duration || "Unknown", inline: true },
+            { name: "📅 Year", value: song.meta.year || "—", inline: true },
+            { name: "🔗 Link", value: linkField, inline: true },
+            { name: "✋ Requested", value: requestedBy, inline: true },
+        );
 }
 
-function stopMusic() {
-    player?.stop();
-    connection?.destroy();
-    player = null;
-    connection = null;
+function buildCoverAttachments(song) {
+    if (!song.meta.cover) return [];
+
+    const coverExt = song.meta.coverMime?.split("/")[1] || "jpg";
+    return [new AttachmentBuilder(song.meta.cover, { name: `cover.${coverExt}` })];
 }
 
 async function getDuration(filePath) {
     return new Promise((resolve) => {
         const args = ["-v", "quiet", "-print_format", "json", "-show_format", filePath];
-        execFile(ffprobePath, args, { timeout: 10000 }, (error, stdout) => {
+
+        execFile(FFPROBE_PATH, args, { timeout: 10000 }, (error, stdout) => {
+            const label = path.basename(filePath);
+
             if (error) {
-                console.warn(
-                    chalk.yellow("[WARN]"),
-                    chalk.white(`ffprobe error on "${path.basename(filePath)}": ${error.message}`),
-                );
+                log.warn(`ffprobe error on "${label}": ${error.message}`);
                 return resolve("Unknown");
             }
+
             if (!stdout?.trim()) {
-                console.warn(
-                    chalk.yellow("[WARN]"),
-                    chalk.white(`ffprobe empty output for "${path.basename(filePath)}"`),
-                );
+                log.warn(`ffprobe empty output for "${label}"`);
                 return resolve("Unknown");
             }
+
             try {
-                const data = JSON.parse(stdout);
-                const secs = parseFloat(data.format?.duration || 0);
+                const { format } = JSON.parse(stdout);
+                const secs = parseFloat(format?.duration || 0);
+
                 if (isNaN(secs) || secs <= 0) return resolve("Unknown");
+
                 const min = Math.floor(secs / 60);
                 const sec = Math.floor(secs % 60);
                 resolve(`${min}:${sec.toString().padStart(2, "0")}`);
@@ -113,46 +135,46 @@ async function getDuration(filePath) {
 }
 
 async function getMetadata(filePath) {
+    const fallback = {
+        artist: "Unknown Artist",
+        album: "Unknown Album",
+        year: null,
+        source: null,
+        cover: null,
+        coverMime: "image/jpeg",
+    };
+
     try {
         const mm = await import("music-metadata");
         const meta = await mm.parseFile(filePath, { skipCovers: false });
         const { common } = meta;
-
         const picture = common.picture?.[0] ?? null;
 
         return {
-            artist: common.artist || common.artists?.join(", ") || "Unknown Artist",
-            album: common.album || "Unknown Album",
+            artist: common.artist || common.artists?.join(", ") || fallback.artist,
+            album: common.album || fallback.album,
             year: common.year ? String(common.year) : null,
             source: common.comment?.[0]?.text || null,
             cover: picture ? Buffer.from(picture.data) : null,
-            coverMime: picture?.format ?? "image/jpeg",
+            coverMime: picture?.format ?? fallback.coverMime,
         };
     } catch (err) {
-        console.warn(
-            chalk.yellow("[WARN]"),
-            chalk.white(`Failed to read metadata for "${path.basename(filePath)}": ${err.message}`),
-        );
-        return {
-            artist: "Unknown Artist",
-            album: "Unknown Album",
-            year: null,
-            source: null,
-            cover: null,
-            coverMime: "image/jpeg",
-        };
+        log.warn(`Failed to read metadata for "${path.basename(filePath)}": ${err.message}`);
+        return fallback;
     }
 }
 
 async function loadPlaylist() {
-    const files = fs.readdirSync(MUSIC_FOLDER).filter((file) => file.endsWith(".mp3"));
+    if (state.playlistLoaded && state.playlist.length > 0) return;
+
+    const files = fs.readdirSync(MUSIC_FOLDER).filter((f) => f.endsWith(".mp3"));
 
     if (files.length === 0) {
-        console.error(chalk.red("[ERROR]"), chalk.white("Music folder is empty!"));
+        log.error("Music folder is empty!");
         process.exit(1);
     }
 
-    playlist = await Promise.all(
+    state.playlist = await Promise.all(
         files.map(async (file) => {
             const name = file.replace(".mp3", "");
             const fullPath = path.join(MUSIC_FOLDER, file);
@@ -163,226 +185,209 @@ async function loadPlaylist() {
             return { name, duration, meta };
         }),
     );
+
+    state.playlistLoaded = true;
+}
+
+function getPlaylist() {
+    return state.playlist;
+}
+
+async function getSongByName(songName) {
+    if (!state.playlistLoaded) await loadPlaylist();
+
+    const normalized = songName.toLowerCase().trim();
+
+    return (
+        state.playlist.find((s) => s.name.toLowerCase() === normalized) ??
+        state.playlist.find((s) => s.name.toLowerCase().includes(normalized)) ??
+        null
+    );
+}
+
+function togglePause() {
+    const { player } = state;
+    if (!player?.state) return false;
+
+    if (player.state.status === AudioPlayerStatus.Paused) {
+        player.unpause();
+        return true;
+    }
+
+    if (player.state.status === AudioPlayerStatus.Playing) {
+        player.pause();
+        return false;
+    }
+
+    return false;
+}
+
+function stopMusic() {
+    state.player?.stop();
+    state.connection?.destroy();
+    state.player = null;
+    state.connection = null;
 }
 
 async function playSong(index, client, requestedBy = "Playlist") {
-    const song = playlist[index];
+    const song = state.playlist[index];
     const filePath = path.join(MUSIC_FOLDER, `${song.name}.mp3`);
 
-    const resource = createAudioResource(filePath, { inlineVolume: true });
-    player.play(resource);
-    currentSongIndex = index;
+    state.player.play(createAudioResource(filePath, { inlineVolume: true }));
+    state.currentSongIndex = index;
 
     await updateNowPlayingLog(client, song, requestedBy);
 }
 
 async function playNext(client, requestedBy = "Playlist") {
-    const nextIndex = (currentSongIndex + 1) % playlist.length;
+    const nextIndex = (state.currentSongIndex + 1) % state.playlist.length;
     await playSong(nextIndex, client, requestedBy);
 }
 
+async function playPrevious(client, requestedBy = "Playlist") {
+    if (!state.playlist.length) return;
+    const prevIndex = (state.currentSongIndex - 1 + state.playlist.length) % state.playlist.length;
+    await playSong(prevIndex, client, requestedBy);
+}
+
 async function getCurrentSong() {
-    if (!playlist.length || currentSongIndex < 0) {
-        return null;
-    }
+    const { playlist, currentSongIndex, player } = state;
+    if (!playlist.length || currentSongIndex < 0) return null;
 
     const song = playlist[currentSongIndex];
     if (!song) return null;
 
-    const filePath = path.join(MUSIC_FOLDER, `${song.name}.mp3`);
-
     return {
         ...song,
-        filePath,
+        filePath: path.join(MUSIC_FOLDER, `${song.name}.mp3`),
         index: currentSongIndex,
         totalSongs: playlist.length,
         isPlaying: player?.state?.status === AudioPlayerStatus.Playing,
     };
 }
 
-async function initMusicPlayer(client) {
+function resolveGuildAndChannel(client) {
     const guild = client.guilds.cache.get(client.config.guildId);
-    if (!guild) return console.error(chalk.red("[ERROR]"), chalk.white("Wrong Guild ID!"));
+    if (!guild) {
+        log.error("Wrong Guild ID!");
+        return null;
+    }
 
     const voiceChannel = guild.channels.cache.get(client.config.channel.voiceChannel);
     if (!voiceChannel || voiceChannel.type !== 2) {
-        return console.error(chalk.red("[ERROR]"), chalk.white("Wrong Voice Channel ID!"));
+        log.error("Wrong Voice Channel ID!");
+        return null;
     }
 
-    await loadPlaylist();
+    return { guild, voiceChannel };
+}
 
-    await fetchExistingNowPlayingMessage(client);
-
-    connection = joinVoiceChannel({
-        channelId: voiceChannel.id,
-        guildId: guild.id,
-        adapterCreator: guild.voiceAdapterCreator,
-    });
-
-    player = createAudioPlayer({
+function createAndSubscribePlayer(client) {
+    state.player = createAudioPlayer({
         behaviors: { noSubscriber: NoSubscriberBehavior.Pause },
     });
 
-    connection.subscribe(player);
-    await playSong(0, client);
+    state.connection.subscribe(state.player);
 
-    player.on(AudioPlayerStatus.Idle, () => playNext(client, "Playlist"));
-
-    module.exports.getCurrentSong = getCurrentSong;
-
-    player.on("error", (error) => {
-        console.error(chalk.red("[ERROR]"), chalk.white(`Player error: ${error.message}`));
+    state.player.on(AudioPlayerStatus.Idle, () => playNext(client, "Playlist"));
+    state.player.on("error", (err) => {
+        log.error(`Player error: ${err.message}`);
         playNext(client);
     });
 }
 
-async function getSongByName(songName) {
-    if (!playlist.length) {
-        await loadPlaylist();
-    }
-
-    const normalizedName = songName.toLowerCase().trim();
-
-    let found = playlist.find((song) => song.name.toLowerCase() === normalizedName);
-
-    if (!found) {
-        found = playlist.find((song) => song.name.toLowerCase().includes(normalizedName));
-    }
-
-    return found || null;
-}
-
 async function isBotInVoice(client) {
-    const guild = client.guilds.cache.get(client.config.guildId);
-    if (!guild) return false;
-
-    const voiceChannel = guild.channels.cache.get(client.config.channel.voiceChannel);
-    if (!voiceChannel) return false;
-
-    return voiceChannel.members.has(client.user.id);
+    const resolved = resolveGuildAndChannel(client);
+    if (!resolved) return false;
+    return resolved.voiceChannel.members.has(client.user.id);
 }
 
-async function joinAndPlayFrom(songName, client, user) {
-    const guild = client.guilds.cache.get(client.config.guildId);
-    if (!guild) throw new Error("Guild not found");
+async function initMusicPlayer(client) {
+    const resolved = resolveGuildAndChannel(client);
+    if (!resolved) return;
 
-    const voiceChannel = guild.channels.cache.get(client.config.channel.voiceChannel);
-    if (!voiceChannel || voiceChannel.type !== 2) {
-        throw new Error("Voice channel not found or invalid");
-    }
+    const { guild, voiceChannel } = resolved;
 
-    connection = joinVoiceChannel({
+    await loadPlaylist();
+    await fetchExistingNowPlayingMessage(client);
+
+    state.connection = joinVoiceChannel({
         channelId: voiceChannel.id,
         guildId: guild.id,
         adapterCreator: guild.voiceAdapterCreator,
     });
 
-    if (!player) {
-        player = createAudioPlayer({
-            behaviors: { noSubscriber: NoSubscriberBehavior.Pause },
-        });
-        connection.subscribe(player);
+    createAndSubscribePlayer(client);
+    await playSong(0, client);
+}
 
-        player.on(AudioPlayerStatus.Idle, () => playNext(client));
-        player.on("error", (error) => {
-            console.error(chalk.red("[ERROR]"), chalk.white(`Player error: ${error.message}`));
-            playNext(client);
-        });
+async function joinAndPlayFrom(songName, client, user) {
+    const resolved = resolveGuildAndChannel(client);
+    if (!resolved) throw new Error("Guild or voice channel not found");
+
+    const { guild, voiceChannel } = resolved;
+
+    state.connection = joinVoiceChannel({
+        channelId: voiceChannel.id,
+        guildId: guild.id,
+        adapterCreator: guild.voiceAdapterCreator,
+    });
+
+    if (!state.player) {
+        createAndSubscribePlayer(client);
     }
 
     const song = await getSongByName(songName);
     if (!song) throw new Error(`Song "${songName}" not found`);
 
-    const requestBy = user || "Playlist";
-
-    const index = playlist.findIndex((s) => s.name === song.name);
-    await playSong(index, client, requestBy);
+    const index = state.playlist.findIndex((s) => s.name === song.name);
+    await playSong(index, client, user || "Playlist");
 
     return song;
+}
+
+async function fetchExistingNowPlayingMessage(client) {
+    if (state.nowPlayingMessage) return state.nowPlayingMessage;
+
+    try {
+        const logChannel = client.channels.cache.get(client.config.channel.logChannel);
+        if (!logChannel?.isTextBased()) return null;
+
+        state.nowPlayingMessage = await logChannel.messages.fetch(client.config.channel.updateId);
+        return state.nowPlayingMessage;
+    } catch {
+        log.warn(
+            `Could not fetch existing Now Playing message (${client.config.channel.updateId}). Will create new one if needed.`,
+        );
+        state.nowPlayingMessage = null;
+        return null;
+    }
 }
 
 async function updateNowPlayingLog(client, song, requestedBy = "Playlist") {
     const logChannel = client.channels.cache.get(client.config.channel.logChannel);
     if (!logChannel?.isTextBased()) return;
 
-    const linkField = song.meta.source ? `[Click Here](${song.meta.source})` : "—";
-
-    const embed = new EmbedBuilder()
-        .setColor(12928528)
-        .setTitle(song.name)
-        .setAuthor({ name: "🎵 Now Playing" })
-        .setThumbnail(
-            song.meta.cover
-                ? `attachment://cover.${song.meta.coverMime.split("/")[1] || "jpg"}`
-                : null,
-        )
-        .setFooter({ text: "🔁 Local playlist is looping" })
-        .setTimestamp()
-        .setFields(
-            { name: "👤 Artist", value: song.meta.artist || "Unknown", inline: true },
-            { name: "💿 Album", value: song.meta.album || "Unknown", inline: true },
-            { name: "⌚ Duration", value: song.duration || "Unknown", inline: true },
-            { name: "📅 Year", value: song.meta.year || "—", inline: true },
-            { name: "🔗 Link", value: linkField, inline: true },
-            { name: "✋ Requested", value: requestedBy, inline: true },
-        );
-
+    const embed = buildNowPlayingEmbed(song, requestedBy);
     const row = getControlRow();
+    const files = buildCoverAttachments(song);
 
-    const files = song.meta.cover
-        ? [
-              new AttachmentBuilder(song.meta.cover, {
-                  name: `cover.${song.meta.coverMime.split("/")[1] || "jpg"}`,
-              }),
-          ]
-        : [];
-
-    if (!nowPlayingMessage) {
+    if (!state.nowPlayingMessage) {
         await fetchExistingNowPlayingMessage(client);
     }
 
-    if (nowPlayingMessage) {
+    if (state.nowPlayingMessage) {
         try {
-            await nowPlayingMessage.edit({ embeds: [embed], components: [row], files });
+            await state.nowPlayingMessage.edit({ embeds: [embed], components: [row], files });
             return;
-        } catch (error) {
-            console.warn(
-                chalk.yellow("[WARN]"),
-                chalk.white("Failed to edit existing message, will create new one"),
-            );
-            nowPlayingMessage = null;
+        } catch {
+            log.warn("Failed to edit existing message, will create new one");
+            state.nowPlayingMessage = null;
         }
     }
 
-    nowPlayingMessage = await logChannel.send({ embeds: [embed], components: [row], files });
-    console.log(chalk.yellow("[INFO]"), chalk.white("Created new Now Playing message as fallback"));
-}
-
-async function fetchExistingNowPlayingMessage(client) {
-    if (nowPlayingMessage) return nowPlayingMessage;
-
-    try {
-        const logChannel = client.channels.cache.get(client.config.channel.logChannel);
-        if (!logChannel?.isTextBased()) return null;
-
-        nowPlayingMessage = await logChannel.messages.fetch(client.config.channel.updateId);
-        return nowPlayingMessage;
-    } catch (error) {
-        console.warn(
-            chalk.yellow("[WARN]"),
-            chalk.white(
-                `Could not fetch existing Now Playing message (${client.config.channel.updateId}). Will create new one if needed.`,
-            ),
-        );
-        nowPlayingMessage = null;
-        return null;
-    }
-}
-
-async function playPrevious(client, requestedBy = "Playlist") {
-    if (!playlist.length) return;
-    const prevIndex = (currentSongIndex - 1 + playlist.length) % playlist.length;
-    await playSong(prevIndex, client, requestedBy);
+    state.nowPlayingMessage = await logChannel.send({ embeds: [embed], components: [row], files });
+    log.info("Created new Now Playing message as fallback");
 }
 
 module.exports = {
@@ -392,7 +397,7 @@ module.exports = {
     playNext,
     playPrevious,
     getCurrentSong,
-    getPlaylist: () => playlist,
+    getPlaylist,
     getSongByName,
     joinAndPlayFrom,
     isBotInVoice,
