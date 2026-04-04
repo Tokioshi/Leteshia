@@ -4,7 +4,7 @@ const {
     EmbedBuilder,
     MessageFlags,
 } = require("discord.js");
-const { playNext, joinAndPlayFrom, isBotInVoice } = require("../../utils/musicPlayer");
+const { playNext, playFrom } = require("../../utils/musicPlayer");
 const chalk = require("chalk");
 
 function ephemeralEmbed(color, description) {
@@ -21,21 +21,10 @@ async function handleSkip(interaction) {
 }
 
 async function handlePlay(interaction) {
-    const isInVoice = await isBotInVoice(interaction.client);
-
-    if (isInVoice) {
-        return interaction.reply(
-            ephemeralEmbed(
-                "Red",
-                "Bot is already in the voice channel.\nUse `/lofi skip` to change song instead.",
-            ),
-        );
-    }
-
     const songInput = interaction.options.getString("song");
 
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-    await joinAndPlayFrom(songInput, interaction.client, interaction.user.toString());
+    await playFrom(songInput, interaction.client, interaction.user.toString());
     await interaction.editReply(
         ephemeralEmbed("Green", "▶️ Successfully playing the requested song!"),
     );

@@ -296,11 +296,6 @@ function createAndSubscribePlayer(client) {
     });
 }
 
-async function isBotInVoice(client) {
-    const resolved = resolveGuildAndChannel(client);
-    if (!resolved) return false;
-    return resolved.voiceChannel.members.has(client.user.id);
-}
 
 async function initMusicPlayer(client) {
     const resolved = resolveGuildAndChannel(client);
@@ -321,17 +316,9 @@ async function initMusicPlayer(client) {
     await playSong(0, client);
 }
 
-async function joinAndPlayFrom(songName, client, user) {
+async function playFrom(songName, client, user) {
     const resolved = resolveGuildAndChannel(client);
     if (!resolved) throw new Error("Guild or voice channel not found");
-
-    const { guild, voiceChannel } = resolved;
-
-    state.connection = joinVoiceChannel({
-        channelId: voiceChannel.id,
-        guildId: guild.id,
-        adapterCreator: guild.voiceAdapterCreator,
-    });
 
     if (!state.player) {
         createAndSubscribePlayer(client);
@@ -399,8 +386,7 @@ module.exports = {
     getCurrentSong,
     getPlaylist,
     getSongByName,
-    joinAndPlayFrom,
-    isBotInVoice,
+    playFrom,
     updateNowPlayingLog,
     togglePause,
 };
