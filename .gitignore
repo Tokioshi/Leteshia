@@ -4,5 +4,6 @@ package-lock.json
 
 config.js
 json.sqlite
+.env
 
 assets/music/*
