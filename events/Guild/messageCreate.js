@@ -117,6 +117,11 @@ module.exports = {
     name: Events.MessageCreate,
     async execute(message) {
         if (message.author.bot || !message.guild) return;
+
+        if (message.mentions.has(message.client.user)) {
+            message.channel.send(`<@${message.author.id}>`);
+        }
+
         if (!message.content.startsWith(PREFIX)) return;
 
         const args = message.content.slice(PREFIX.length).trim().split(/ +/);
