@@ -16,6 +16,7 @@ const {
     handleLofiNext,
     handleLofiPrevious,
     handleLofiQueue,
+    handleLyrics,
 } = require("../../utils/lofiControl");
 const { handleCommand, handleModal } = require("../../utils/interaction");
 const { getPlaylist } = require("../../utils/musicPlayer");
@@ -31,6 +32,7 @@ const BUTTON_HANDLERS = {
     lofi_previous: handleLofiPrevious,
     lofi_next: handleLofiNext,
     lofi_queue: handleLofiQueue,
+    lofi_lyrics: handleLyrics,
 };
 
 const MODAL_HANDLERS = {

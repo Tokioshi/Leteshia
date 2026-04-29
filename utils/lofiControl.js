@@ -8,11 +8,11 @@ const {
 const {
     playNext,
     playPrevious,
-    togglePause,
     updateNowPlayingLog,
     getPlaylist,
     getCurrentSong,
 } = require("./musicPlayer");
+const axios = require("axios");
 
 const SONGS_PER_PAGE = 15;
 const COLLECTOR_TIMEOUT = 300_000;
@@ -81,25 +81,21 @@ function buildQueueRow(page, totalPages, disabled = false) {
 }
 
 async function handleLofiPause(interaction) {
-    const isNowPlaying = togglePause();
-
+    await interaction.deferUpdate();
     const currentSong = await getCurrentSong();
     if (currentSong) {
         await updateNowPlayingLog(interaction.client, currentSong, "Button").catch(() => {});
     }
-
-    const status = isNowPlaying ? "▶️ Music resumed." : "⏸️ Music paused.";
-    await interaction.reply(ephemeralEmbed("Green", status));
 }
 
 async function handleLofiPrevious(interaction) {
+    await interaction.deferUpdate();
     await playPrevious(interaction.client, interaction.user.toString());
-    await interaction.reply(ephemeralEmbed("Green", "⏮️ Returned to the previous song!"));
 }
 
 async function handleLofiNext(interaction) {
+    await interaction.deferUpdate();
     await playNext(interaction.client, interaction.user.toString());
-    await interaction.reply(ephemeralEmbed("Green", "⏭️ Skipped to the next song!"));
 }
 
 async function handleLofiQueue(interaction) {
@@ -149,9 +145,85 @@ async function handleLofiQueue(interaction) {
     });
 }
 
+async function handleLyrics(interaction) {
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+    const embed = interaction.message.embeds[0];
+    if (!embed) {
+        return interaction.editReply({
+            embeds: [
+                new EmbedBuilder()
+                    .setColor("Red")
+                    .setTitle("Failed")
+                    .setDescription("Failed to fetch lyrics."),
+            ],
+        });
+    }
+
+    const songName = embed.title;
+    const artistField = embed.fields.find((f) => f.name === "👤 Artist");
+    const artistName = artistField ? artistField.value : "Unknown";
+
+    try {
+        const response = await axios.get("https://lrclib.net/api/get", {
+            params: {
+                artist_name: artistName,
+                track_name: songName,
+            },
+        });
+
+        const data = response.data;
+        const lyrics = data.plainLyrics || data.syncedLyrics;
+
+        if (!lyrics) {
+            return interaction.editReply({
+                embeds: [
+                    new EmbedBuilder()
+                        .setColor("Red")
+                        .setTitle("Failed")
+                        .setDescription("Failed to fetch lyrics."),
+                ],
+            });
+        }
+
+        const truncatedLyrics = lyrics.length > 4000 ? lyrics.substring(0, 3997) + "..." : lyrics;
+
+        const lyricsEmbed = new EmbedBuilder()
+            .setTitle(`Lyrics: ${songName}`)
+            .setAuthor({ name: artistName })
+            .setDescription(truncatedLyrics)
+            .setColor("#E74C3C")
+            .setFooter({ text: "Source: LRCLIB" });
+
+        await interaction.editReply({ embeds: [lyricsEmbed] });
+    } catch (error) {
+        if (error.response && error.response.status === 404) {
+            return interaction.editReply({
+                embeds: [
+                    new EmbedBuilder()
+                        .setColor("Red")
+                        .setTitle("Failed")
+                        .setDescription("Failed to fetch lyrics."),
+                ],
+            });
+        }
+
+        console.error("Error fetching lyrics:", error);
+        await interaction.editReply({
+            embeds: [
+                new EmbedBuilder()
+                    .setColor("Red")
+                    .setTitle("Failed")
+                    .setDescription("Failed to fetch lyrics."),
+            ],
+        });
+    }
+}
+
 module.exports = {
     handleLofiPause,
     handleLofiPrevious,
     handleLofiNext,
     handleLofiQueue,
+    handleLyrics,
 };

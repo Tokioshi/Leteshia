@@ -18,7 +18,7 @@ const { execFile } = require("child_process");
 const chalk = require("chalk");
 
 const MUSIC_FOLDER = path.join(__dirname, "../assets/music");
-const EMBED_COLOR = 12928528;
+const EMBED_COLOR = "#E74C3C";
 const FFPROBE_PATH = resolveFfprobePath();
 
 const state = {
@@ -65,6 +65,10 @@ function getControlRow() {
             .setLabel("Previous")
             .setStyle(ButtonStyle.Primary),
         new ButtonBuilder().setCustomId("lofi_next").setLabel("Next").setStyle(ButtonStyle.Primary),
+        new ButtonBuilder()
+            .setCustomId("lofi_lyrics")
+            .setLabel("Lyrics")
+            .setStyle(ButtonStyle.Danger),
         new ButtonBuilder()
             .setCustomId("lofi_queue")
             .setLabel("Show Queue")
@@ -237,6 +241,11 @@ async function playSong(index, client, requestedBy = "Playlist") {
     state.currentSongIndex = index;
 
     await updateNowPlayingLog(client, song, requestedBy);
+
+    const channelId = client.config.channel.voiceChannel;
+    await client.rest.put(`/channels/${channelId}/voice-status`, {
+        body: { status: `${song.name}` },
+    });
 }
 
 async function playNext(client, requestedBy = "Playlist") {
@@ -295,7 +304,6 @@ function createAndSubscribePlayer(client) {
         playNext(client);
     });
 }
-
 
 async function initMusicPlayer(client) {
     const resolved = resolveGuildAndChannel(client);
