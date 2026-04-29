@@ -1,5 +1,6 @@
 const { Client, GatewayIntentBits, ActivityType, Collection } = require("discord.js");
 const chalk = require("chalk");
+require("dotenv").config();
 
 class Bot extends Client {
     constructor() {
@@ -9,6 +10,8 @@ class Bot extends Client {
                 GatewayIntentBits.GuildMembers,
                 GatewayIntentBits.GuildPresences,
                 GatewayIntentBits.GuildVoiceStates,
+                GatewayIntentBits.GuildMessages,
+                GatewayIntentBits.MessageContent,
             ],
             presence: {
                 activities: [
