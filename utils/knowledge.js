@@ -1,9 +1,8 @@
 const { QuickDB } = require("quick.db");
-const Groq = require("groq-sdk");
-const { MODEL } = require("./ai");
+const { MODEL, getGroqClient } = require("./ai");
 
 const db = new QuickDB();
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const groq = getGroqClient();
 
 const MAX_KNOWLEDGE_MSGS = 200;
 
