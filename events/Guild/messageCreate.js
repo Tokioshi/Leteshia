@@ -169,9 +169,9 @@ module.exports = {
                                     `${message.author.displayAvatarURL({ forceStatis: false, size: 1024 })}`,
                                 )
                                 .addFields(
-                                    { name: "Author:", value: `${message.author}`, inline: true },
+                                    { name: "Author", value: `${message.author}`, inline: true },
                                     {
-                                        name: "Video Link:",
+                                        name: "Video Link",
                                         value: `[Click Here](${matchedLink})`,
                                         inline: true,
                                     },
