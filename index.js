@@ -26,8 +26,6 @@ class Bot extends Client {
 
         this.commands = new Collection();
 
-        this.inviteCache = new Map();
-
         this.loadConfig();
         this.loadHandlers();
     }
@@ -36,7 +34,7 @@ class Bot extends Client {
         try {
             this.config = require("./config");
 
-            if (!this.config?.token) {
+            if (!process.env.CLIENT_TOKEN) {
                 throw new Error("Bot token is required in config");
             }
         } catch (error) {
@@ -61,7 +59,7 @@ class Bot extends Client {
 
     async init() {
         try {
-            await this.login(this.config.token);
+            await this.login(process.env.CLIENT_TOKEN);
         } catch (error) {
             console.error("Login failed: ", error);
             process.exit(1);
