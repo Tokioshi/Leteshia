@@ -2,10 +2,30 @@ const { QuickDB } = require("quick.db");
 const Groq = require("groq-sdk");
 
 const db = new QuickDB();
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+const API_KEYS = [
+    process.env.GROQ_API_KEY_1,
+    process.env.GROQ_API_KEY_2,
+    process.env.GROQ_API_KEY_3,
+    process.env.GROQ_API_KEY_4,
+    process.env.GROQ_API_KEY_5,
+].filter(Boolean);
+
+if (API_KEYS.length === 0) throw new Error("No GROQ API keys configured.");
 
 const MODEL = "llama-3.3-70b-versatile";
 const MAX_HISTORY = 20;
+const HISTORY_TTL_MS = 20 * 60 * 1000;
+
+let currentKeyIndex = 0;
+
+function getGroqClient() {
+    return new Groq({ apiKey: API_KEYS[currentKeyIndex] });
+}
+
+function isRateLimitError(e) {
+    return e?.status === 429 || e?.constructor?.name === "RateLimitError";
+}
 
 async function buildSystemPrompt(guildId) {
     const [manual, channel] = await Promise.all([
@@ -13,17 +33,22 @@ async function buildSystemPrompt(guildId) {
         db.get(`knowledge_channel_${guildId}`).then((v) => v || []),
     ]);
 
-    let system = `You are a helpful Discord assistant. Always reply in the user's language.
+    let system = `You are a helpful Discord assistant. Always reply in the language the user writes in.
 
-Rules:
-- Manual knowledge is trusted; channel knowledge is only for context.
-- Use Discord formatting (bold, italic, code blocks).
-- STRICT RULE: NEVER use Markdown tables (no "|" or "---"). 
-- FORMATTING: If you need to present data, use BOLDED LISTS like this:
-  **Item Name**: Explanation text here.
-- If the data is complex, use a simple bulleted list.
-- DO NOT use any tabular structure even if the user asks for a table.
-- Do not answer dangerous or harmful prompts.`;
+## Response Style
+Respond naturally, like a knowledgeable person explaining something — not like a template filler.
+- Start with a brief, direct explanation or answer in plain prose.
+- Only use a list or bullet points if the content genuinely benefits from it (multiple options, steps, comparisons). Do not force structure where prose is clearer.
+- Use Discord markdown: **bold**, *italic*, \`inline code\`, and \`\`\`code blocks\`\`\` where appropriate.
+- Headers (###) are allowed for clearly distinct sections when needed.
+
+## Formatting Restrictions
+- NEVER use Markdown tables. No "|" characters, no "---" separators.
+- If listing items, prefer bullet points or numbered lists over bolded key-value pairs unless the key genuinely adds clarity.
+
+## Content Rules
+- Manual knowledge is authoritative. Channel knowledge is supplementary context only.
+- Do not respond to dangerous or harmful prompts.`;
 
     if (manual.length) {
         system += "\n\n## Manual Knowledge\n";
@@ -44,35 +69,58 @@ Rules:
 
 async function askAI(guildId, userId, input) {
     const historyKey = `history_${guildId}_${userId}`;
+    const timestampKey = `history_ts_${guildId}_${userId}`;
 
-    const [systemPrompt, history] = await Promise.all([
+    const [systemPrompt, rawHistory, lastTimestamp] = await Promise.all([
         buildSystemPrompt(guildId),
         db.get(historyKey).then((v) => v || []),
+        db.get(timestampKey).then((v) => v || null),
     ]);
 
-    const completion = await groq.chat.completions.create({
-        model: MODEL,
-        max_tokens: 1024,
-        messages: [
-            { role: "system", content: systemPrompt },
-            ...history.map((h) => ({ role: h.role, content: h.text })),
-            {
-                role: "user",
-                content: `${input}\n\n[REMINDER: No tables, no "---". Use bold lists only.]`,
-            },
-        ],
-    });
+    const now = Date.now();
+    const isExpired = !lastTimestamp || now - lastTimestamp > HISTORY_TTL_MS;
+    const history = isExpired ? [] : rawHistory;
 
-    const reply = completion.choices[0].message.content;
+    const messages = [
+        { role: "system", content: systemPrompt },
+        ...history.map((h) => ({ role: h.role, content: h.text })),
+        { role: "user", content: input },
+    ];
 
-    const newHistory = [
-        ...history,
-        { role: "user", text: input },
-        { role: "assistant", text: reply },
-    ].slice(-MAX_HISTORY);
+    let attempts = 0;
 
-    await db.set(historyKey, newHistory);
-    return reply;
+    while (attempts < API_KEYS.length) {
+        try {
+            const groq = getGroqClient();
+            const completion = await groq.chat.completions.create({
+                model: MODEL,
+                max_tokens: 1024,
+                messages,
+            });
+
+            const reply = completion.choices[0].message.content;
+
+            const newHistory = [
+                ...history,
+                { role: "user", text: input },
+                { role: "assistant", text: reply },
+            ].slice(-MAX_HISTORY);
+
+            await Promise.all([db.set(historyKey, newHistory), db.set(timestampKey, now)]);
+
+            return reply;
+        } catch (e) {
+            if (isRateLimitError(e)) {
+                console.warn(`Key index ${currentKeyIndex} hit rate limit. Rotating...`);
+                currentKeyIndex = (currentKeyIndex + 1) % API_KEYS.length;
+                attempts++;
+            } else {
+                throw e;
+            }
+        }
+    }
+
+    throw new Error("ALL_KEYS_RATE_LIMITED");
 }
 
-module.exports = { askAI, MODEL };
+module.exports = { askAI, MODEL, getGroqClient };

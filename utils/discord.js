@@ -2,7 +2,7 @@ const { PermissionsBitField, ContainerBuilder, MessageFlags } = require("discord
 
 const isAdmin = (member) => member.permissions.has(PermissionsBitField.Flags.Administrator);
 
-async function sendLong(msg, text) {
+async function sendLong(msg, text, noAI = false) {
     const chunks = splitText(text);
 
     for (let i = 0; i < chunks.length; i++) {
@@ -12,7 +12,7 @@ async function sendLong(msg, text) {
             td.setContent(chunks[i]),
         );
 
-        if (isLast) {
+        if (isLast && noAI === false) {
             container
                 .addSeparatorComponents((s) => s)
                 .addTextDisplayComponents((td) =>
