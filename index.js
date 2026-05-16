@@ -52,7 +52,7 @@ class Bot extends Client {
 
     loadHandlers() {
         try {
-            require("./handler/index")(this);
+            require("./handler")(this);
         } catch (error) {
             console.error("Failed to load handlers: ", error);
             throw error;
