@@ -1,4 +1,4 @@
-const { Events, AttachmentBuilder, EmbedBuilder } = require("discord.js");
+const { Events, AttachmentBuilder, EmbedBuilder, ContainerBuilder } = require("discord.js");
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
@@ -54,6 +54,23 @@ module.exports = {
                     const res = await askAI(message.guild.id, message.author.id, input);
                     await sendLong(message, res);
                 } catch (e) {
+                    if (e.message === "ALL_KEYS_RATE_LIMITED") {
+                        return message.reply({
+                            components: [
+                                new ContainerBuilder().addTextDisplayComponents((text) =>
+                                    text
+                                        .setContent(
+                                            "The AI is resting peacefully for a moment. Please wait until she wakes up...",
+                                        )
+                                        .addSeparatorComponents((s) => s)
+                                        .addTextDisplayComponents((text) =>
+                                            text.setContent("*Rate limit detected*"),
+                                        ),
+                                ),
+                            ],
+                            allowedMentions: { repliedUser: false },
+                        });
+                    }
                     console.error(e);
                     message.reply("Error.");
                 }
@@ -93,7 +110,7 @@ module.exports = {
                 }
                 if (!out) out = "Empty.";
 
-                return sendLong(message, out);
+                return sendLong(message, out, true);
             }
 
             if (cmd === "knowledge-clear") {
