@@ -204,5 +204,46 @@ module.exports = {
                 safeDeleteFile(compressedFilePath);
             }
         }
+
+        if (message.content.startsWith(`${PREFIX}snipe`)) {
+            const args = message.content.split(" ");
+            const index = parseInt(args[1]) || 1;
+
+            const channelSnipes = message.client.snipes.get(message.channel.id);
+            const msg = channelSnipes?.[index - 1];
+
+            if (!msg) {
+                return message
+                    .reply({
+                        content: `**Sike!** There's nothing to snipe on index ${index}.`,
+                        allowedMentions: { repliedUser: false },
+                    })
+                    .then((msg) => {
+                        setTimeout(() => {
+                            msg.delete();
+                        }, 5000);
+                    });
+            }
+
+            const options = {
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+                hour12: false,
+                timeZone: "Asia/Jakarta",
+            };
+
+            const embed = new EmbedBuilder()
+                .setAuthor({ name: msg.authorName, iconURL: msg.authorAvatar })
+                .setDescription(msg.content ?? "*[No text content]*")
+                .setFooter({
+                    text: `Deleted at ${msg.timestamp.toLocaleTimeString("en-GB", options)}`,
+                })
+                .setColor(0xed4245);
+
+            if (msg.image) embed.setImage(msg.image);
+
+            await message.channel.send({ embeds: [embed] });
+        }
     },
 };
