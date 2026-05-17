@@ -25,6 +25,7 @@ class Bot extends Client {
         });
 
         this.commands = new Collection();
+        this.snipes = new Collection();
 
         this.loadConfig();
         this.loadHandlers();
