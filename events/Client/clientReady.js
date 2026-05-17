@@ -10,6 +10,8 @@ module.exports = {
             chalk.white(`Connected as ${chalk.italic(client.user.tag)}!`),
         );
 
-        await initMusicPlayer(client);
+        if (client.config.playLofi) {
+            await initMusicPlayer(client);
+        }
     },
 };
