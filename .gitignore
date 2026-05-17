@@ -2,7 +2,6 @@ node_modules
 
 package-lock.json
 
-config.js
 json.sqlite
 .env
 
