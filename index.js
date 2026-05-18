@@ -1,6 +1,10 @@
 const { Client, GatewayIntentBits, ActivityType, Collection } = require("discord.js");
 const chalk = require("chalk");
+const mongoose = require("mongoose");
 require("dotenv").config();
+
+const dns = require("node:dns");
+dns.setServers(["8.8.8.8", "8.8.4.4"]);
 
 class Bot extends Client {
     constructor() {
@@ -59,6 +63,18 @@ class Bot extends Client {
     }
 
     async init() {
+        try {
+            await mongoose.connect(process.env.MONGO_URI);
+            console.log(chalk.green("[DATABASE]"), chalk.white("MongoDB connected successfully"));
+        } catch (error) {
+            console.error(
+                chalk.red("[DATABASE]"),
+                chalk.white("MongoDB connection failed:"),
+                error,
+            );
+            process.exit(1);
+        }
+
         try {
             await this.login(process.env.CLIENT_TOKEN);
         } catch (error) {

@@ -1,7 +1,7 @@
-const { QuickDB } = require("quick.db");
+const Knowledge = require("../models/Knowledge");
+const AISession = require("../models/AISession");
 const { MODEL, getGroqClient } = require("./ai");
 
-const db = new QuickDB();
 const groq = getGroqClient();
 
 const MAX_KNOWLEDGE_MSGS = 200;
@@ -41,48 +41,78 @@ async function buildChannelKnowledge(channel) {
 }
 
 async function addChannelKnowledge(guildId, channel, summary) {
-    const key = `knowledge_channel_${guildId}`;
-    const data = (await db.get(key)) || [];
+    try {
+        const entry = {
+            channelId: channel.id,
+            channelName: channel.name,
+            summary,
+        };
 
-    const entry = {
-        channelId: channel.id,
-        channelName: channel.name,
-        summary,
-    };
+        const knowledge = await Knowledge.findOne({ guildId });
 
-    const i = data.findIndex((e) => e.channelId === entry.channelId);
-    if (i >= 0) data[i] = entry;
-    else data.push(entry);
-
-    await db.set(key, data);
+        if (knowledge) {
+            const idx = knowledge.channels.findIndex((e) => e.channelId === channel.id);
+            if (idx >= 0) {
+                knowledge.channels[idx] = entry;
+            } else {
+                knowledge.channels.push(entry);
+            }
+            await knowledge.save();
+        } else {
+            await Knowledge.create({ guildId, channels: [entry] });
+        }
+    } catch (error) {
+        console.error("[Knowledge] addChannelKnowledge error:", error);
+        throw error;
+    }
 }
 
 async function addManualKnowledge(guildId, text) {
-    const key = `knowledge_manual_${guildId}`;
-    const data = (await db.get(key)) || [];
-    data.push({ text });
-    await db.set(key, data);
+    try {
+        await Knowledge.findOneAndUpdate(
+            { guildId },
+            { $push: { manual: { text } } },
+            { upsert: true, returnDocument: "after" },
+        );
+    } catch (error) {
+        console.error("[Knowledge] addManualKnowledge error:", error);
+        throw error;
+    }
 }
 
 async function getKnowledge(guildId) {
-    const [manual, channel] = await Promise.all([
-        db.get(`knowledge_manual_${guildId}`).then((v) => v || []),
-        db.get(`knowledge_channel_${guildId}`).then((v) => v || []),
-    ]);
-    return { manual, channel };
+    try {
+        const knowledge = await Knowledge.findOne({ guildId });
+        return {
+            manual: knowledge?.manual || [],
+            channel: knowledge?.channels || [],
+        };
+    } catch (error) {
+        console.error("[Knowledge] getKnowledge error:", error);
+        return { manual: [], channel: [] };
+    }
 }
 
 async function clearKnowledge(guildId) {
-    await Promise.all([
-        db.delete(`knowledge_manual_${guildId}`),
-        db.delete(`knowledge_channel_${guildId}`),
-    ]);
+    try {
+        await Knowledge.findOneAndUpdate(
+            { guildId },
+            { $set: { manual: [], channels: [] } },
+            { upsert: true },
+        );
+    } catch (error) {
+        console.error("[Knowledge] clearKnowledge error:", error);
+        throw error;
+    }
 }
 
 async function resetHistory(guildId, userId) {
-    const { QuickDB } = require("quick.db");
-    const db = new QuickDB();
-    await db.delete(`history_${guildId}_${userId}`);
+    try {
+        await AISession.deleteOne({ guildId, userId });
+    } catch (error) {
+        console.error("[Knowledge] resetHistory error:", error);
+        throw error;
+    }
 }
 
 module.exports = {

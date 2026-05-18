@@ -1,6 +1,6 @@
 const { Events } = require("discord.js");
 const chalk = require("chalk");
-const { QuickDB } = require("quick.db");
+const Password = require("../../models/Password");
 
 const {
     handleBuyButton,
@@ -20,8 +20,6 @@ const {
 } = require("../../utils/lofiControl");
 const { handleCommand, handleModal } = require("../../utils/interaction");
 const { getPlaylist } = require("../../utils/musicPlayer");
-
-const db = new QuickDB();
 
 const BUTTON_HANDLERS = {
     buy: handleBuyButton,
@@ -44,14 +42,20 @@ const MODAL_HANDLERS = {
 };
 
 async function handlePasswordAutocomplete(interaction) {
-    const focusedValue = interaction.options.getFocused();
-    const passwords = (await db.get(`password:${interaction.user.id}`)) || [];
+    try {
+        const focusedValue = interaction.options.getFocused();
+        const doc = await Password.findOne({ userId: interaction.user.id });
+        const entries = doc?.entries || [];
 
-    const filtered = passwords
-        .map((p) => p.name)
-        .filter((name) => name.toLowerCase().includes(focusedValue.toLowerCase()));
+        const filtered = entries
+            .map((p) => p.name)
+            .filter((name) => name.toLowerCase().includes(focusedValue.toLowerCase()));
 
-    await interaction.respond(filtered.slice(0, 25).map((name) => ({ name, value: name })));
+        await interaction.respond(filtered.slice(0, 25).map((name) => ({ name, value: name })));
+    } catch (error) {
+        console.error(chalk.red("[ERROR]"), chalk.white("Password autocomplete error:"), error);
+        await interaction.respond([]);
+    }
 }
 
 async function handleLofiAutocomplete(interaction) {
