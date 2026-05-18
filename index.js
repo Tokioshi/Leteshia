@@ -3,8 +3,8 @@ const chalk = require("chalk");
 const mongoose = require("mongoose");
 require("dotenv").config();
 
-const dns = require("node:dns");
-dns.setServers(["8.8.8.8", "8.8.4.4"]);
+const dns = require("node:dns"); // Optional, if you don't have google dns on your operating system ...
+dns.setServers(["8.8.8.8", "8.8.4.4"]); // ... Or got any error when connecting to the database.
 
 class Bot extends Client {
     constructor() {
