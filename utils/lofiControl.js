@@ -82,7 +82,7 @@ function buildQueueRow(page, totalPages, disabled = false) {
 
 async function handleLofiPause(interaction) {
     await interaction.deferUpdate();
-    const currentSong = await getCurrentSong();
+    const currentSong = getCurrentSong();
     if (currentSong) {
         await updateNowPlayingLog(interaction.client, currentSong, "Button").catch(() => {});
     }
@@ -105,9 +105,12 @@ async function handleLofiQueue(interaction) {
         return interaction.reply(ephemeralEmbed("Red", "Playlist is empty."));
     }
 
-    const currentSong = await getCurrentSong();
+    const currentSong = getCurrentSong();
     const totalPages = Math.ceil(playlistData.length / SONGS_PER_PAGE);
-    let currentPage = 0;
+    const currentSongIndex = currentSong
+        ? playlistData.findIndex((song) => song.name === currentSong.name)
+        : -1;
+    let currentPage = currentSongIndex >= 0 ? Math.floor(currentSongIndex / SONGS_PER_PAGE) : 0;
 
     await interaction.reply({
         embeds: [buildQueueEmbed(playlistData, currentSong, currentPage, totalPages)],
