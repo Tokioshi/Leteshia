@@ -1,5 +1,10 @@
 const { Client, GatewayIntentBits, ActivityType, Collection } = require("discord.js");
 const chalk = require("chalk");
+const mongoose = require("mongoose");
+require("dotenv").config();
+
+const dns = require("node:dns"); // Optional, if you don't have google dns on your operating system ...
+dns.setServers(["8.8.8.8", "8.8.4.4"]); // ... Or got any error when connecting to the database.
 
 class Bot extends Client {
     constructor() {
@@ -8,20 +13,23 @@ class Bot extends Client {
                 GatewayIntentBits.Guilds,
                 GatewayIntentBits.GuildMembers,
                 GatewayIntentBits.GuildPresences,
+                GatewayIntentBits.GuildVoiceStates,
+                GatewayIntentBits.GuildMessages,
+                GatewayIntentBits.MessageContent,
             ],
             presence: {
                 activities: [
                     {
-                        type: ActivityType.Listening,
-                        name: "Your Order!",
+                        type: ActivityType.Custom,
+                        name: "custom",
+                        state: "Please Get a Job!",
                     },
                 ],
             },
         });
 
         this.commands = new Collection();
-
-        this.inviteCache = new Map();
+        this.snipes = new Collection();
 
         this.loadConfig();
         this.loadHandlers();
@@ -31,7 +39,7 @@ class Bot extends Client {
         try {
             this.config = require("./config");
 
-            if (!this.config?.token) {
+            if (!process.env.CLIENT_TOKEN) {
                 throw new Error("Bot token is required in config");
             }
         } catch (error) {
@@ -47,7 +55,7 @@ class Bot extends Client {
 
     loadHandlers() {
         try {
-            require("./handler/index")(this);
+            require("./handler")(this);
         } catch (error) {
             console.error("Failed to load handlers: ", error);
             throw error;
@@ -56,7 +64,19 @@ class Bot extends Client {
 
     async init() {
         try {
-            await this.login(this.config.token);
+            await mongoose.connect(process.env.MONGO_URI);
+            console.log(chalk.green("[DATABASE]"), chalk.white("MongoDB connected successfully"));
+        } catch (error) {
+            console.error(
+                chalk.red("[DATABASE]"),
+                chalk.white("MongoDB connection failed:"),
+                error,
+            );
+            process.exit(1);
+        }
+
+        try {
+            await this.login(process.env.CLIENT_TOKEN);
         } catch (error) {
             console.error("Login failed: ", error);
             process.exit(1);

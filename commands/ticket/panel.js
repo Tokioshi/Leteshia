@@ -1,12 +1,12 @@
 const {
     SlashCommandBuilder,
-    PermissionFlagsBits,
     EmbedBuilder,
     ButtonBuilder,
     ButtonStyle,
     ActionRowBuilder,
     InteractionContextType,
     MessageFlags,
+    PermissionFlagsBits,
 } = require("discord.js");
 
 module.exports = {
@@ -46,7 +46,13 @@ module.exports = {
                 components: [row],
             })
             .then(() => {
-                interaction.editReply({ content: "Sent!" });
+                interaction.editReply({
+                    embeds: [
+                        new EmbedBuilder()
+                            .setColor("Green")
+                            .setDescription("Successfully sent the ticket panel!"),
+                    ],
+                });
             });
     },
 };

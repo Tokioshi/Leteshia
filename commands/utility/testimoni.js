@@ -7,9 +7,9 @@ const {
     StringSelectMenuOptionBuilder,
     UserSelectMenuBuilder,
     FileUploadBuilder,
-    PermissionFlagsBits,
     MessageFlags,
     InteractionContextType,
+    PermissionFlagsBits,
 } = require("discord.js");
 
 module.exports = {
@@ -24,7 +24,6 @@ module.exports = {
                 embeds: [
                     new EmbedBuilder()
                         .setColor("Red")
-                        .setTitle("Gagal")
                         .setDescription("You are not authorized to run this command!"),
                 ],
                 flags: MessageFlags.Ephemeral,

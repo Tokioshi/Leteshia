@@ -22,7 +22,6 @@ module.exports = {
                 embeds: [
                     new EmbedBuilder()
                         .setColor("Red")
-                        .setTitle("Failed")
                         .setDescription("You are not authorized to execute this command!"),
                 ],
                 flags: MessageFlags.Ephemeral,
