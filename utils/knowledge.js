@@ -48,18 +48,17 @@ async function addChannelKnowledge(guildId, channel, summary) {
             summary,
         };
 
-        const knowledge = await Knowledge.findOne({ guildId });
+        const result = await Knowledge.findOneAndUpdate(
+            { guildId, "channels.channelId": channel.id },
+            { $set: { "channels.$": entry } },
+        );
 
-        if (knowledge) {
-            const idx = knowledge.channels.findIndex((e) => e.channelId === channel.id);
-            if (idx >= 0) {
-                knowledge.channels[idx] = entry;
-            } else {
-                knowledge.channels.push(entry);
-            }
-            await knowledge.save();
-        } else {
-            await Knowledge.create({ guildId, channels: [entry] });
+        if (!result) {
+            await Knowledge.findOneAndUpdate(
+                { guildId },
+                { $push: { channels: entry } },
+                { upsert: true },
+            );
         }
     } catch (error) {
         console.error("[Knowledge] addChannelKnowledge error:", error);
