@@ -17,9 +17,13 @@ const MAX_HISTORY = 20;
 const HISTORY_TTL_MS = 20 * 60 * 1000;
 
 let currentKeyIndex = 0;
-
+const groqClients = new Map();
 function getGroqClient() {
-    return new Groq({ apiKey: API_KEYS[currentKeyIndex] });
+    const key = API_KEYS[currentKeyIndex];
+    if (!groqClients.has(key)) {
+        groqClients.set(key, new Groq({ apiKey: key }));
+    }
+    return groqClients.get(key);
 }
 
 function isRateLimitError(e) {
@@ -78,7 +82,7 @@ async function askAI(guildId, userId, input) {
 
         const now = Date.now();
         const isExpired = !session?.lastTimestamp || now - session.lastTimestamp > HISTORY_TTL_MS;
-        const history = isExpired ? [] : (session?.history || []);
+        const history = isExpired ? [] : session?.history || [];
 
         const messages = [
             { role: "system", content: systemPrompt },
