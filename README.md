@@ -78,7 +78,7 @@ MONGO_URI="mongodb+srv://<username>:<password>@cluster.mongodb.net/<dbname>?retr
 ```
 
 ### 4. Adjust Application Configurations (`config.js`)
-Open the pre-configured [config.js](C:\Users\Tiko\Documents\Leteshia\config.js) file and replace the mock/existing Snowflakes with your own Discord IDs:
+Open the pre-configured [config.js](https://github.com/Tokioshi/Leteshia/blob/main/config.js) file and replace the mock/existing Snowflakes with your own Discord IDs:
 *   `guildId`: Your main server/guild ID.
 *   `developer`: Array of Discord User IDs allowed to perform administrative tasks (e.g. reload commands).
 *   `channel`: Specify target channels for features like testimonies, feedbacks, welcomes, goodbyes, bot logs, voice channel lofi, link logging, etc.
