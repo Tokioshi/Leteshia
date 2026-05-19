@@ -14,12 +14,10 @@ const {
 } = require("discord.js");
 const fs = require("node:fs");
 const path = require("node:path");
-const { execFile } = require("child_process");
 const chalk = require("chalk");
 
 const MUSIC_FOLDER = path.join(__dirname, "../assets/music");
 const EMBED_COLOR = "#E74C3C";
-const FFPROBE_PATH = resolveFfprobePath();
 
 const state = {
     player: null,
@@ -29,22 +27,6 @@ const state = {
     nowPlayingMessage: null,
     playlistLoaded: false,
 };
-
-function resolveFfprobePath() {
-    const candidates = [
-        () => require("@ffprobe-installer/ffprobe").path,
-        () => require("ffprobe-static").path,
-        () => require("ffmpeg-static").replace(/ffmpeg(\.exe)?$/i, "ffprobe$1"),
-    ];
-
-    for (const candidate of candidates) {
-        try {
-            return candidate();
-        } catch {}
-    }
-
-    return "ffprobe";
-}
 
 const log = {
     info: (msg) => console.log(chalk.yellow("[INFO]"), chalk.white(msg)),
@@ -105,37 +87,12 @@ function buildCoverAttachments(song) {
     return [new AttachmentBuilder(song.meta.cover, { name: `cover.${coverExt}` })];
 }
 
-async function getDuration(filePath) {
-    return new Promise((resolve) => {
-        const args = ["-v", "quiet", "-print_format", "json", "-show_format", filePath];
-
-        execFile(FFPROBE_PATH, args, { timeout: 10000 }, (error, stdout) => {
-            const label = path.basename(filePath);
-
-            if (error) {
-                log.warn(`ffprobe error on "${label}": ${error.message}`);
-                return resolve("Unknown");
-            }
-
-            if (!stdout?.trim()) {
-                log.warn(`ffprobe empty output for "${label}"`);
-                return resolve("Unknown");
-            }
-
-            try {
-                const { format } = JSON.parse(stdout);
-                const secs = parseFloat(format?.duration || 0);
-
-                if (isNaN(secs) || secs <= 0) return resolve("Unknown");
-
-                const min = Math.floor(secs / 60);
-                const sec = Math.floor(secs % 60);
-                resolve(`${min}:${sec.toString().padStart(2, "0")}`);
-            } catch {
-                resolve("Unknown");
-            }
-        });
-    });
+let musicMetadataImport = null;
+async function getMusicMetadata() {
+    if (!musicMetadataImport) {
+        musicMetadataImport = await import("music-metadata");
+    }
+    return musicMetadataImport;
 }
 
 async function getMetadata(filePath) {
@@ -146,13 +103,22 @@ async function getMetadata(filePath) {
         source: null,
         cover: null,
         coverMime: "image/jpeg",
+        duration: "Unknown",
     };
 
     try {
-        const mm = await import("music-metadata");
+        const mm = await getMusicMetadata();
         const meta = await mm.parseFile(filePath, { skipCovers: false });
-        const { common } = meta;
+        const { common, format } = meta;
         const picture = common.picture?.[0] ?? null;
+
+        let duration = "Unknown";
+        const secs = parseFloat(format?.duration || 0);
+        if (!isNaN(secs) && secs > 0) {
+            const min = Math.floor(secs / 60);
+            const sec = Math.floor(secs % 60);
+            duration = `${min}:${sec.toString().padStart(2, "0")}`;
+        }
 
         return {
             artist: common.artist || common.artists?.join(", ") || fallback.artist,
@@ -161,6 +127,7 @@ async function getMetadata(filePath) {
             source: common.comment?.[0]?.text || null,
             cover: picture ? Buffer.from(picture.data) : null,
             coverMime: picture?.format ?? fallback.coverMime,
+            duration,
         };
     } catch (err) {
         log.warn(`Failed to read metadata for "${path.basename(filePath)}": ${err.message}`);
@@ -182,11 +149,8 @@ async function loadPlaylist() {
         files.map(async (file) => {
             const name = file.replace(".mp3", "");
             const fullPath = path.join(MUSIC_FOLDER, file);
-            const [duration, meta] = await Promise.all([
-                getDuration(fullPath),
-                getMetadata(fullPath),
-            ]);
-            return { name, duration, meta };
+            const meta = await getMetadata(fullPath);
+            return { name, duration: meta.duration, meta };
         }),
     );
 
@@ -259,7 +223,7 @@ async function playPrevious(client, requestedBy = "Playlist") {
     await playSong(prevIndex, client, requestedBy);
 }
 
-async function getCurrentSong() {
+function getCurrentSong() {
     const { playlist, currentSongIndex, player } = state;
     if (!playlist.length || currentSongIndex < 0) return null;
 
