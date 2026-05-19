@@ -48,7 +48,6 @@ module.exports = async (client) => {
 
     function loadCommand(filePath) {
         try {
-            delete require.cache[require.resolve(filePath)];
             const command = require(filePath);
 
             if ("data" in command && "execute" in command) {
@@ -72,7 +71,6 @@ module.exports = async (client) => {
 
     function loadEvent(filePath) {
         try {
-            delete require.cache[require.resolve(filePath)];
             const event = require(filePath);
 
             if (!event.name || !event.execute) {
