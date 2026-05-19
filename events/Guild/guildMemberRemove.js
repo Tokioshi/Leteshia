@@ -2,6 +2,13 @@ const { Events, AttachmentBuilder } = require("discord.js");
 const { createCanvas, loadImage, registerFont } = require("canvas");
 const path = require("path");
 
+registerFont(path.join(__dirname, "../../assets/fonts/Metropolis-Bold.otf"), {
+    family: "Metropolis",
+});
+
+let cachedBg = null;
+const BG_PATH = path.join(__dirname, "../../assets/images/goodbye-background.jpg");
+
 module.exports = {
     name: Events.GuildMemberRemove,
     async execute(member) {
@@ -10,15 +17,12 @@ module.exports = {
             const canvas = createCanvas(735, 413);
             const ctx = canvas.getContext("2d");
 
-            const background = await loadImage(
-                path.join(__dirname, "../../assets/images/goodbye-background.jpg"),
-            );
+            if (!cachedBg) {
+                cachedBg = await loadImage(BG_PATH);
+            }
+            const background = cachedBg;
 
             const avatar = await loadImage(user.displayAvatarURL({ extension: "png", size: 256 }));
-
-            registerFont(path.join(__dirname, "../../assets/fonts/Metropolis-Bold.otf"), {
-                family: "Metropolis",
-            });
 
             ctx.drawImage(background, 0, 0, canvas.width, canvas.height);
 
@@ -166,9 +170,9 @@ module.exports = {
 
             generateRandomSparkles();
 
-            const buffer = canvas.toBuffer("image/png");
+            const buffer = canvas.toBuffer("image/jpeg", { quality: 0.9 });
             const attachment = new AttachmentBuilder(buffer, {
-                name: "goodbye.png",
+                name: "goodbye.jpg",
             });
 
             member.client.channels.cache.get(member.client.config.channel.goodbye).send({
