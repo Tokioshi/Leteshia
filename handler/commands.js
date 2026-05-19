@@ -1,71 +1,29 @@
 const { REST, Routes } = require("discord.js");
-const fs = require("node:fs");
-const path = require("node:path");
 const chalk = require("chalk");
 
 module.exports = async (client) => {
-    const commandsPath = path.join(__dirname, "../commands");
     const commands = [];
     const failedCommands = [];
 
-    function readCommands(dir) {
+    for (const [name, command] of client.commands) {
         try {
-            if (!fs.existsSync(dir)) {
-                console.error(
-                    chalk.red("[ERROR]"),
-                    chalk.white(`Commands directory ${dir} does not exist`),
+            if (!command.data) {
+                console.warn(
+                    chalk.yellow("[WARNING]"),
+                    chalk.white(`Command ${name} is missing a data property`),
                 );
-                return;
+                failedCommands.push(name);
+                continue;
             }
-
-            const files = fs.readdirSync(dir);
-
-            for (const file of files) {
-                const filePath = path.join(dir, file);
-
-                try {
-                    const stat = fs.statSync(filePath);
-
-                    if (stat.isDirectory()) {
-                        readCommands(filePath);
-                    } else if (file.endsWith(".js")) {
-                        try {
-                            const command = require(filePath);
-
-                            if (!command.data) {
-                                console.warn(
-                                    chalk.yellow("[WARNING]"),
-                                    chalk.white(`Command at ${filePath} missing data property`),
-                                );
-                                failedCommands.push(filePath);
-                                continue;
-                            }
-
-                            commands.push(command.data.toJSON());
-                        } catch (error) {
-                            console.error(
-                                chalk.red("[ERROR]"),
-                                chalk.white(`Failed to load command ${filePath}: ${error.message}`),
-                            );
-                            failedCommands.push(filePath);
-                        }
-                    }
-                } catch (error) {
-                    console.error(
-                        chalk.red("[ERROR]"),
-                        chalk.white(`Failed to process file ${filePath}: ${error.message}`),
-                    );
-                }
-            }
+            commands.push(command.data.toJSON());
         } catch (error) {
             console.error(
                 chalk.red("[ERROR]"),
-                chalk.white(`Failed to read directory ${dir}: ${error.message}`),
+                chalk.white(`Failed to serialize command ${name}: ${error.message}`),
             );
+            failedCommands.push(name);
         }
     }
-
-    readCommands(commandsPath);
 
     if (commands.length === 0) {
         console.error(chalk.red("[ERROR]"), chalk.white("No valid commands found to deploy"));
