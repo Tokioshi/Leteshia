@@ -1,6 +1,6 @@
 module.exports = {
     guildId: "1414414557971087504",
-    playLofi: false,
+    playLofi: true,
     channel: {
         testimoni: "1425643330154401803",
         feedback: "1425646283154264185",
