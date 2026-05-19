@@ -14,7 +14,6 @@
   },
   "dependencies": {
     "@discordjs/voice": "^0.19.2",
-    "@ffprobe-installer/ffprobe": "^2.1.2",
     "axios": "^1.15.2",
     "canvas": "^3.2.3",
     "chalk": "^4.1.2",
@@ -25,8 +24,6 @@
     "groq-sdk": "^1.1.2",
     "mongoose": "^9.6.2",
     "music-metadata": "^11.12.3",
-    "node-pre-gyp": "^0.17.0",
-    "opusscript": "^0.1.1",
-    "rebuild": "^0.1.2"
+    "opusscript": "^0.1.1"
   }
 }
