@@ -23,10 +23,8 @@ const {
 
 const PREFIX = "!";
 
-const TIKTOK_REGEX =
-    /https?:\/\/(?:www\.)?(?:tiktok\.com\/(?:@[\w.-]+\/(?:video|photo)\/\d+|t\/[\w-]+)|(?:vm|vt)\.tiktok\.com\/[\w-]+)\/?(?:[?#]\S*)?/i;
-
-const IG_REGEX = /https?:\/\/(?:www\.)?instagram\.com\/(?:p|reel|tv)\/[\w-]+\/?(?:[?#]\S*)?/i;
+const SOCIAL_MEDIA_REGEX =
+    /https?:\/\/(?:www\.)?(?:tiktok\.com\/(?:@[\w.-]+\/(?:video|photo)\/\d+|t\/[\w-]+)|(?:vm|vt)\.tiktok\.com\/[\w-]+|instagram\.com\/(?:p|reel|tv)\/[\w-]+)\/?(?:[?#]\S*)?/i;
 
 module.exports = {
     name: Events.MessageCreate,
@@ -124,7 +122,7 @@ module.exports = {
             }
         }
 
-        const matchedLink = message.content.match(TIKTOK_REGEX) || message.content.match(IG_REGEX);
+        const matchedLink = message.content.match(SOCIAL_MEDIA_REGEX);
 
         if (matchedLink) {
             const url = matchedLink[0];
@@ -172,7 +170,7 @@ module.exports = {
                                     { name: "Author", value: `${message.author}`, inline: true },
                                     {
                                         name: "Video Link",
-                                        value: `[Click Here](${matchedLink})`,
+                                        value: `[Click Here](${url})`,
                                         inline: true,
                                     },
                                     {
