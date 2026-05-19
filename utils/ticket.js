@@ -145,12 +145,16 @@ function createSnKSelectMenu() {
             new StringSelectMenuOptionBuilder()
                 .setLabel("Have")
                 .setValue("Have")
-                .setDescription("By this, you are considered to have read the Terms and Conditions of Harmony Hub")
+                .setDescription(
+                    "By this, you are considered to have read the Terms and Conditions of Harmony Hub",
+                )
                 .setEmoji("✅"),
             new StringSelectMenuOptionBuilder()
                 .setLabel("Not Yet")
                 .setValue("Not Yet")
-                .setDescription("By doing so, you are deemed not to have read the Terms and Conditions.")
+                .setDescription(
+                    "By doing so, you are deemed not to have read the Terms and Conditions.",
+                )
                 .setEmoji("❌"),
         );
 }
@@ -174,7 +178,9 @@ async function createTicketChannel(interaction, options) {
         embeds: [
             new EmbedBuilder()
                 .setColor("Yellow")
-                .setDescription("Please be patient! Your ticket is being processed and will be ready in a few seconds..."),
+                .setDescription(
+                    "Please be patient! Your ticket is being processed and will be ready in a few seconds...",
+                ),
         ],
     });
     try {
@@ -191,13 +197,18 @@ async function createTicketChannel(interaction, options) {
         });
 
         const embedTitle =
-            options.type === "buy" ? "Ticket for Order Service" : `Ticket for Ask ${options.service}`;
+            options.type === "buy"
+                ? "Ticket for Order Service"
+                : `Ticket for Ask ${options.service}`;
         const embed = new EmbedBuilder()
             .setTitle(embedTitle)
             .setColor("Orange")
             .setDescription(options.description);
         const components = new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId("done").setLabel("Complete").setStyle(ButtonStyle.Success),
+            new ButtonBuilder()
+                .setCustomId("done")
+                .setLabel("Complete")
+                .setStyle(ButtonStyle.Success),
             new ButtonBuilder().setCustomId("close").setLabel("Close").setStyle(ButtonStyle.Danger),
         );
         const message = await channel.send({
@@ -225,10 +236,15 @@ async function createTicketChannel(interaction, options) {
             embeds: [
                 new EmbedBuilder()
                     .setColor("Red")
-                    .setDescription(`Ticket failed to create, please contact <@${interaction.client.config.developer.tokioshy}>`),
+                    .setDescription(
+                        `Ticket failed to create, please contact <@${interaction.client.config.developer.tokioshy}>`,
+                    ),
             ],
         });
-        console.error(chalk.redBright("[ERROR]"), chalk.red("Failed trying to create channel because: ", error));
+        console.error(
+            chalk.redBright("[ERROR]"),
+            chalk.red("Failed trying to create channel because: ", error),
+        );
     }
 }
 
@@ -236,7 +252,9 @@ async function logTicketDeletion(interaction, channel, reason) {
     try {
         const ticket = await Ticket.findOne({ channelId: channel.id });
         const ownerId = ticket?.ownerId || null;
-        const logChannel = interaction.guild.channels.cache.get(interaction.client.config.channel.logs);
+        const logChannel = interaction.guild.channels.cache.get(
+            interaction.client.config.channel.logs,
+        );
         if (!logChannel) return;
         const embed = new EmbedBuilder()
             .setTitle("Ticket Closed")
@@ -244,7 +262,11 @@ async function logTicketDeletion(interaction, channel, reason) {
             .setThumbnail(interaction.user.displayAvatarURL({ extension: "png", size: 512 }))
             .setFields(
                 { name: "Ticket Name", value: `${channel.name}`, inline: true },
-                { name: "Ticket Owner", value: ownerId ? `<@${ownerId}>` : "Unknown", inline: true },
+                {
+                    name: "Ticket Owner",
+                    value: ownerId ? `<@${ownerId}>` : "Unknown",
+                    inline: true,
+                },
                 { name: "Closed By", value: `${interaction.user}`, inline: true },
                 { name: "Reason", value: reason },
             )

@@ -28,7 +28,7 @@ module.exports = {
         .addSubcommand((subcommand) =>
             subcommand
                 .setName("find")
-                .setDescription("Find your password by it's name")
+                .setDescription("Find your password by its name")
                 .addStringOption((opt) =>
                     opt
                         .setName("name")
@@ -40,7 +40,7 @@ module.exports = {
         .addSubcommand((subcommand) =>
             subcommand
                 .setName("remove")
-                .setDescription("Remove your password by it's name")
+                .setDescription("Remove your password by its name")
                 .addStringOption((opt) =>
                     opt
                         .setName("name")
@@ -73,7 +73,9 @@ module.exports = {
                         embeds: [
                             new EmbedBuilder()
                                 .setColor("Red")
-                                .setDescription(`A password with the name **${name}** already exists!`),
+                                .setDescription(
+                                    `A password with the name **${name}** already exists!`,
+                                ),
                         ],
                     });
                 }
@@ -147,7 +149,9 @@ module.exports = {
                         embeds: [
                             new EmbedBuilder()
                                 .setColor("Red")
-                                .setDescription(`No password found with the name **${name}** to remove.`),
+                                .setDescription(
+                                    `No password found with the name **${name}** to remove.`,
+                                ),
                         ],
                     });
                 }
@@ -197,7 +201,9 @@ module.exports = {
                     const end = start + itemsPerPage;
                     const currentPasswords = passwords.slice(start, end);
                     const description = currentPasswords
-                        .map((p, index) => `${start + index + 1}. **${p.name}** : ||${p.password}||`)
+                        .map(
+                            (p, index) => `${start + index + 1}. **${p.name}** : ||${p.password}||`,
+                        )
                         .join("\n");
                     return new EmbedBuilder()
                         .setTitle("Your Passwords")
