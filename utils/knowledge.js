@@ -1,6 +1,6 @@
 const Knowledge = require("../models/Knowledge");
 const AISession = require("../models/AISession");
-const { MODEL, getGroqClient } = require("./ai");
+const { MODEL, getGroqClient, invalidatePromptCache } = require("./ai");
 
 const groq = getGroqClient();
 
@@ -60,6 +60,8 @@ async function addChannelKnowledge(guildId, channel, summary) {
                 { upsert: true },
             );
         }
+
+        invalidatePromptCache(guildId);
     } catch (error) {
         console.error("[Knowledge] addChannelKnowledge error:", error);
         throw error;
@@ -73,6 +75,8 @@ async function addManualKnowledge(guildId, text) {
             { $push: { manual: { text } } },
             { upsert: true, returnDocument: "after" },
         );
+
+        invalidatePromptCache(guildId);
     } catch (error) {
         console.error("[Knowledge] addManualKnowledge error:", error);
         throw error;
@@ -99,6 +103,8 @@ async function clearKnowledge(guildId) {
             { $set: { manual: [], channels: [] } },
             { upsert: true },
         );
+
+        invalidatePromptCache(guildId);
     } catch (error) {
         console.error("[Knowledge] clearKnowledge error:", error);
         throw error;

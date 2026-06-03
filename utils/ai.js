@@ -13,8 +13,9 @@ const API_KEYS = [
 if (API_KEYS.length === 0) throw new Error("No GROQ API keys configured.");
 
 const MODEL = "llama-3.3-70b-versatile";
-const MAX_HISTORY = 20;
+const MAX_HISTORY = 10;
 const HISTORY_TTL_MS = 20 * 60 * 1000;
+const PROMPT_CACHE_TTL_MS = 5 * 60 * 1000;
 
 let currentKeyIndex = 0;
 const groqClients = new Map();
@@ -30,7 +31,20 @@ function isRateLimitError(e) {
     return e?.status === 429 || e?.constructor?.name === "RateLimitError";
 }
 
+// Prompt cache: { guildId -> { prompt: string, expiresAt: number } }
+const promptCache = new Map();
+
+function invalidatePromptCache(guildId) {
+    promptCache.delete(guildId);
+}
+
 async function buildSystemPrompt(guildId) {
+    const now = Date.now();
+    const cached = promptCache.get(guildId);
+    if (cached && now < cached.expiresAt) {
+        return cached.prompt;
+    }
+
     try {
         const knowledge = await Knowledge.findOne({ guildId });
         const manual = knowledge?.manual || [];
@@ -67,6 +81,7 @@ Respond naturally, like a knowledgeable person explaining something — not like
             });
         }
 
+        promptCache.set(guildId, { prompt: system, expiresAt: now + PROMPT_CACHE_TTL_MS });
         return system;
     } catch (error) {
         console.error("[AI] Failed to build system prompt:", error);
@@ -135,4 +150,4 @@ async function askAI(guildId, userId, input) {
     }
 }
 
-module.exports = { askAI, MODEL, getGroqClient };
+module.exports = { askAI, MODEL, getGroqClient, invalidatePromptCache };
