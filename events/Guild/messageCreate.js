@@ -31,7 +31,7 @@ module.exports = {
     async execute(message) {
         if (message.author.bot || !message.guild) return;
 
-        if (message.mentions.has(message.client.user)) {
+        if (message.content === `<@${message.client.user.id}>`) {
             message.channel.send(`<@${message.author.id}>`);
         }
 
