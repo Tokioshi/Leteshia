@@ -13,6 +13,8 @@ module.exports = {
         voiceChannel: "1485325790068342845",
         updateId: "1487114433779208352",
         linkLog: "1504425905899175986",
+        exchangeRate: "1512274267390218332",
+        exchangeID: "1512276635381137448",
     },
     role: {
         buyer: "1425643509813084210",
