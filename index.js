@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, ActivityType, Collection } = require("discord.js");
+const { Client, GatewayIntentBits, Collection } = require("discord.js");
 const chalk = require("chalk");
 const mongoose = require("mongoose");
 require("dotenv").config();
@@ -17,15 +17,6 @@ class Bot extends Client {
                 GatewayIntentBits.GuildMessages,
                 GatewayIntentBits.MessageContent,
             ],
-            presence: {
-                activities: [
-                    {
-                        type: ActivityType.Custom,
-                        name: "custom",
-                        state: "Please Get a Job!",
-                    },
-                ],
-            },
         });
 
         this.commands = new Collection();
