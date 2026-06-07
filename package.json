@@ -24,6 +24,7 @@
     "groq-sdk": "^1.1.2",
     "mongoose": "^9.6.2",
     "music-metadata": "^11.12.3",
+    "node-cron": "^4.2.1",
     "opusscript": "^0.1.1"
   }
 }
