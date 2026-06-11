@@ -1,10 +1,21 @@
+require("dotenv").config({ quiet: true });
 const { Client, GatewayIntentBits, Collection } = require("discord.js");
 const chalk = require("chalk");
 const mongoose = require("mongoose");
-require("dotenv").config();
+const path = require("node:path");
+const dns = require("node:dns");
 
-const dns = require("node:dns"); // Optional, if you don't have google dns on your operating system ...
-dns.setServers(["8.8.8.8", "8.8.4.4"]); // ... Or got any error when connecting to the database.
+const requiredEnv = ["MONGO_URI", "CLIENT_TOKEN"];
+const missingEnv = requiredEnv.filter((env) => !process.env[env]);
+if (missingEnv.length > 0) {
+    console.error(
+        chalk.red("[CRITICAL]"),
+        `Missing environment variables: ${missingEnv.join(", ")}`,
+    );
+    process.exit(1);
+}
+
+dns.setServers(["8.8.8.8", "8.8.4.4"]); // Workaround: default DNS fails to resolve MongoDB Atlas hostnames in this environment
 
 class Bot extends Client {
     constructor() {
@@ -19,36 +30,40 @@ class Bot extends Client {
             ],
         });
 
+        this.config = null;
         this.commands = new Collection();
         this.snipes = new Collection();
 
-        this.loadConfig();
-        this.loadHandlers();
+        try {
+            this.loadConfig();
+            this.loadHandlers();
+        } catch (error) {
+            console.error(chalk.red("[INIT ERROR]"), "Failed during constructor setup:", error);
+            process.exit(1);
+        }
     }
 
     loadConfig() {
         try {
-            this.config = require("./config");
-
-            if (!process.env.CLIENT_TOKEN) {
-                throw new Error("Bot token is required in config");
-            }
+            const configPath = path.resolve(__dirname, "./config");
+            this.config = require(configPath);
         } catch (error) {
-            console.error("Failed to load config: ", error);
+            console.error(chalk.red("[CONFIG ERROR]"), "Failed to load config:", error);
             process.exit(1);
         }
     }
 
     reloadConfig() {
-        delete require.cache[require.resolve("./config")];
-        this.config = require("./config");
+        const configPath = path.resolve(__dirname, "./config");
+        delete require.cache[require.resolve(configPath)];
+        this.loadConfig();
     }
 
     loadHandlers() {
         try {
             require("./handler")(this);
         } catch (error) {
-            console.error("Failed to load handlers: ", error);
+            console.error(chalk.red("[HANDLER ERROR]"), "Failed to load handlers:", error);
             throw error;
         }
     }
@@ -69,7 +84,7 @@ class Bot extends Client {
         try {
             await this.login(process.env.CLIENT_TOKEN);
         } catch (error) {
-            console.error("Login failed: ", error);
+            console.error(chalk.red("[LOGIN ERROR]"), chalk.white("Login failed:"), error);
             process.exit(1);
         }
     }
@@ -77,13 +92,18 @@ class Bot extends Client {
     async shutdown() {
         console.log(chalk.red("[SHUTDOWN]"), chalk.white("Shutting down bot..."));
         try {
-            await this.destroy();
+            if (mongoose.connection.readyState === 1) {
+                await mongoose.disconnect();
+                console.log(
+                    chalk.green("[DATABASE]"),
+                    chalk.white("MongoDB disconnected cleanly."),
+                );
+            }
+
+            this.destroy();
             process.exit(0);
         } catch (error) {
-            console.error(
-                chalk.red("[ERROR]"),
-                chalk.white("Error during shutdown: ", error.message),
-            );
+            console.error(chalk.red("[ERROR]"), chalk.white("Error during shutdown:"), error);
             process.exit(1);
         }
     }
@@ -93,10 +113,14 @@ const client = new Bot();
 
 process.on("SIGINT", () => client.shutdown());
 process.on("SIGTERM", () => client.shutdown());
+
 process.on("unhandledRejection", (error) => {
-    console.error("Unhandled promise rejection: ", error);
+    console.error(chalk.red("[UNHANDLED REJECTION]"), error);
+});
+
+process.on("uncaughtException", (error) => {
+    console.error(chalk.red("[UNCAUGHT EXCEPTION]"), error);
+    process.exit(1);
 });
 
 client.init();
-
-module.exports = client;
