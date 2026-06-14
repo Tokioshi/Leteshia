@@ -1,4 +1,8 @@
 module.exports = {
+    bot: {
+        prefix: "!",
+        regex: /https?:\/\/(?:www\.)?(?:tiktok\.com\/(?:@[\w.-]+\/(?:video|photo)\/\d+|t\/[\w-]+)|(?:vm|vt)\.tiktok\.com\/[\w-]+|instagram\.com\/(?:p|reel|tv)\/[\w-]+)\/?(?:[?#]\S*)?/i,
+    },
     guildId: "1414414557971087504",
     playLofi: false,
     channel: {
