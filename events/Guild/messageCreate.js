@@ -1,4 +1,10 @@
-const { Events, AttachmentBuilder, EmbedBuilder, ContainerBuilder } = require("discord.js");
+const {
+    Events,
+    AttachmentBuilder,
+    EmbedBuilder,
+    ContainerBuilder,
+    MessageType,
+} = require("discord.js");
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
@@ -21,22 +27,26 @@ const {
     downloadVideo,
 } = require("../../utils/media");
 
-const PREFIX = "!";
-
-const SOCIAL_MEDIA_REGEX =
-    /https?:\/\/(?:www\.)?(?:tiktok\.com\/(?:@[\w.-]+\/(?:video|photo)\/\d+|t\/[\w-]+)|(?:vm|vt)\.tiktok\.com\/[\w-]+|instagram\.com\/(?:p|reel|tv)\/[\w-]+)\/?(?:[?#]\S*)?/i;
-
 module.exports = {
     name: Events.MessageCreate,
     async execute(message) {
         if (message.author.bot || !message.guild) return;
 
+        if (message.type === MessageType.ChannelPinnedMessage) {
+            try {
+                await message.delete().catch(() => {});
+            } catch (error) {}
+        }
+
         if (message.content === `<@${message.client.user.id}>`) {
             message.channel.send(`<@${message.author.id}>`);
         }
 
-        if (message.content.startsWith(PREFIX)) {
-            const args = message.content.slice(PREFIX.length).trim().split(/ +/);
+        if (message.content.startsWith(message.client.config.bot.prefix)) {
+            const args = message.content
+                .slice(message.client.config.bot.prefix.length)
+                .trim()
+                .split(/ +/);
             const cmd = args.shift().toLowerCase();
 
             if (cmd === "ai") {
@@ -122,7 +132,7 @@ module.exports = {
             }
         }
 
-        const matchedLink = message.content.match(SOCIAL_MEDIA_REGEX);
+        const matchedLink = message.content.match(message.client.config.bot.regex);
 
         if (matchedLink) {
             const url = matchedLink[0];
@@ -156,32 +166,38 @@ module.exports = {
                     files: [new AttachmentBuilder(finalFilePath)],
                 });
 
-                await message.client.channels.cache
-                    .get(message.client.config.channel.linkLog)
-                    .send({
-                        embeds: [
-                            new EmbedBuilder()
-                                .setColor("Yellow")
-                                .setTitle("Video Link Log")
-                                .setThumbnail(
-                                    `${message.author.displayAvatarURL({ forceStatis: false, size: 1024 })}`,
-                                )
-                                .addFields(
-                                    { name: "Author", value: `${message.author}`, inline: true },
-                                    {
-                                        name: "Video Link",
-                                        value: `[Click Here](${url})`,
-                                        inline: true,
-                                    },
-                                    {
-                                        name: "Go to Video",
-                                        value: `[Jump to Message](${msg.url})`,
-                                        inline: false,
-                                    },
-                                )
-                                .setTimestamp(),
-                        ],
-                    });
+                try {
+                    await message.client.channels.cache
+                        .get(message.client.config.channel.linkLog)
+                        .send({
+                            embeds: [
+                                new EmbedBuilder()
+                                    .setColor("Yellow")
+                                    .setTitle("Video Link Log")
+                                    .setThumbnail(
+                                        `${message.author.displayAvatarURL({ forceStatic: false, size: 1024 })}`,
+                                    )
+                                    .addFields(
+                                        {
+                                            name: "Author",
+                                            value: `${message.author}`,
+                                            inline: true,
+                                        },
+                                        {
+                                            name: "Video Link",
+                                            value: `[Click Here](${url})`,
+                                            inline: true,
+                                        },
+                                        {
+                                            name: "Go to Video",
+                                            value: `[Jump to Message](${msg.url})`,
+                                            inline: false,
+                                        },
+                                    )
+                                    .setTimestamp(),
+                            ],
+                        });
+                } catch (_) {}
 
                 if (message.deletable) await message.delete();
             } catch (error) {
@@ -203,7 +219,7 @@ module.exports = {
             }
         }
 
-        if (message.content.startsWith(`${PREFIX}snipe`)) {
+        if (message.content.startsWith(`${message.client.config.bot.prefix}snipe`)) {
             const args = message.content.split(" ");
             const index = parseInt(args[1]) || 1;
 
