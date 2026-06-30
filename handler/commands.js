@@ -53,7 +53,10 @@ module.exports = async (client) => {
             chalk.white(`Started refreshing ${commands.length} application (/) commands`),
         );
 
-        const data = await rest.put(Routes.applicationCommands(client.user.id), { body: commands });
+        const data = await rest.put(
+            Routes.applicationGuildCommands(client.user.id, client.config.guildId),
+            { body: commands },
+        );
 
         console.log(
             chalk.green("[SUCCESS]"),
