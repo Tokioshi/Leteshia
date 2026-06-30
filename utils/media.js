@@ -12,13 +12,47 @@ if (!fs.existsSync(TEMP_DIR)) {
 }
 
 const MAX_SIZE = 10 * 1024 * 1024;
+const AUDIO_BITRATE_KBPS = 96;
+const SAFETY_MARGIN = 0.92;
 
-function compressVideo(inputPath, outputPath) {
+function getVideoDuration(filePath) {
+    return new Promise((resolve, reject) => {
+        ffmpeg.ffprobe(filePath, (err, metadata) => {
+            if (err) return reject(err);
+            resolve(metadata.format.duration);
+        });
+    });
+}
+
+async function compressVideo(
+    inputPath,
+    outputPath,
+    targetSizeBytes = MAX_SIZE,
+) {
+    const duration = await getVideoDuration(inputPath);
+    if (!duration || duration <= 0) {
+        throw new Error("Could not determine video duration.");
+    }
+
+    const totalBitrateKbps = Math.floor(
+        ((targetSizeBytes * 8) / duration / 1000) * SAFETY_MARGIN,
+    );
+    const videoBitrateKbps = Math.max(
+        totalBitrateKbps - AUDIO_BITRATE_KBPS,
+        150,
+    );
+
     return new Promise((resolve, reject) => {
         ffmpeg(inputPath)
-            .videoBitrate("800k")
-            .audioBitrate("128k")
-            .outputOptions(["-preset fast", "-crf 28"])
+            .videoCodec("libx264")
+            .videoBitrate(videoBitrateKbps)
+            .audioBitrate(AUDIO_BITRATE_KBPS)
+            .outputOptions([
+                "-preset veryfast",
+                `-maxrate ${videoBitrateKbps}k`,
+                `-bufsize ${videoBitrateKbps * 2}k`,
+                "-movflags +faststart",
+            ])
             .save(outputPath)
             .on("end", () => resolve(outputPath))
             .on("error", (err) => reject(err));
@@ -37,8 +71,14 @@ function safeDeleteFile(filePath) {
 
 async function downloadVideo(url, outputPath) {
     await execPromise(
-        `yt-dlp -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best" -o "${outputPath}" "${url}"`,
+        `yt-dlp -f "bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[height<=1080][ext=mp4]/best" -o "${outputPath}" "${url}"`,
     );
 }
 
-module.exports = { TEMP_DIR, MAX_SIZE, compressVideo, safeDeleteFile, downloadVideo };
+module.exports = {
+    TEMP_DIR,
+    MAX_SIZE,
+    compressVideo,
+    safeDeleteFile,
+    downloadVideo,
+};
