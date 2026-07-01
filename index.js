@@ -92,6 +92,13 @@ class Bot extends Client {
     async shutdown() {
         console.log(chalk.red("[SHUTDOWN]"), chalk.white("Shutting down bot..."));
         try {
+            if (this.user) {
+                this.user.setPresence({ status: "invisible" });
+            }
+
+            this.destroy();
+            console.log(chalk.green("[DISCORD]"), chalk.white("Client destroyed successfully."));
+
             if (mongoose.connection.readyState === 1) {
                 await mongoose.disconnect();
                 console.log(
@@ -100,7 +107,6 @@ class Bot extends Client {
                 );
             }
 
-            this.destroy();
             process.exit(0);
         } catch (error) {
             console.error(chalk.red("[ERROR]"), chalk.white("Error during shutdown:"), error);
