@@ -11,6 +11,7 @@ const {
     updateNowPlayingLog,
     getPlaylist,
     getCurrentSong,
+    togglePause,
 } = require("./musicPlayer");
 const axios = require("axios");
 
@@ -84,6 +85,7 @@ async function handleLofiPause(interaction) {
     await interaction.deferUpdate();
     const currentSong = getCurrentSong();
     if (currentSong) {
+        togglePause();
         await updateNowPlayingLog(interaction.client, currentSong, "Button").catch(() => {});
     }
 }
