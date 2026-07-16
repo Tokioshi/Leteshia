@@ -33,9 +33,7 @@ module.exports = {
         if (message.author.bot || !message.guild) return;
 
         if (message.type === MessageType.ChannelPinnedMessage) {
-            try {
-                await message.delete().catch(() => {});
-            } catch (error) {}
+            await message.delete().catch(() => {});
         }
 
         if (message.content === `<@${message.client.user.id}>`) {
