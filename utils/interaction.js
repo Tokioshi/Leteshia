@@ -149,6 +149,55 @@ async function handleModal(interaction) {
                 });
             });
     }
+
+    if (interaction.customId === "message") {
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+        const text = interaction.fields.getTextInputValue("text");
+        const attachCollection = interaction.fields.getUploadedFiles("attachment");
+
+        if (!text?.trim() && !attachCollection?.size) {
+            return interaction.editReply(
+                "https://tenor.com/view/tertawa-tapi-terluka-tertawa-tapi-terluka-gif-4910619389471646348",
+            );
+        }
+
+        const files = [];
+
+        if (attachCollection?.size > 0) {
+            for (const attach of attachCollection.values()) {
+                try {
+                    const response = await axios.get(attach.url, {
+                        responseType: "arraybuffer",
+                    });
+                    const file = new AttachmentBuilder(response.data, {
+                        name: attach.name || "attachment.png",
+                    });
+                    files.push(file);
+                } catch (err) {
+                    console.error(`Failed to fetch attachment ${attach.name}:`, err);
+                }
+            }
+        }
+
+        const messageOptions = {
+            content: text?.trim() || null,
+            files: files.length > 0 ? files : undefined,
+        };
+
+        if (!messageOptions.content) delete messageOptions.content;
+        if (!messageOptions.files) delete messageOptions.files;
+
+        await interaction.channel.send(messageOptions);
+
+        await interaction.editReply({
+            embeds: [
+                new EmbedBuilder()
+                    .setColor("Green")
+                    .setDescription("You've just sent a message as bot!"),
+            ],
+        });
+    }
 }
 
 module.exports = {

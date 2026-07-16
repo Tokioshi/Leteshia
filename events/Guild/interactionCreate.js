@@ -39,6 +39,7 @@ const MODAL_HANDLERS = {
     done: handleDoneModal,
     feedback: handleModal,
     testimoni: handleModal,
+    message: handleModal,
 };
 
 async function handlePasswordAutocomplete(interaction) {
