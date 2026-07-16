@@ -108,7 +108,7 @@ async function getMetadata(filePath) {
 
     try {
         const mm = await getMusicMetadata();
-        const meta = await mm.parseFile(filePath, { skipCovers: false });
+        const meta = await mm.parseFile(filePath, { skipCovers: false, duration: true });
         const { common, format } = meta;
         const picture = common.picture?.[0] ?? null;
 
@@ -138,7 +138,7 @@ async function getMetadata(filePath) {
 async function loadPlaylist() {
     if (state.playlistLoaded && state.playlist.length > 0) return;
 
-    const files = fs.readdirSync(MUSIC_FOLDER).filter((f) => f.endsWith(".mp3"));
+    const files = fs.readdirSync(MUSIC_FOLDER).filter((f) => f.endsWith(".opus"));
 
     if (files.length === 0) {
         log.error("Music folder is empty!");
@@ -147,7 +147,7 @@ async function loadPlaylist() {
 
     state.playlist = await Promise.all(
         files.map(async (file) => {
-            const name = file.replace(".mp3", "");
+            const name = file.replace(".opus", "");
             const fullPath = path.join(MUSIC_FOLDER, file);
             const meta = await getMetadata(fullPath);
             return { name, duration: meta.duration, meta };
@@ -199,7 +199,7 @@ function stopMusic() {
 
 async function playSong(index, client, requestedBy = "Playlist") {
     const song = state.playlist[index];
-    const filePath = path.join(MUSIC_FOLDER, `${song.name}.mp3`);
+    const filePath = path.join(MUSIC_FOLDER, `${song.name}.opus`);
 
     state.player.play(createAudioResource(filePath, { inlineVolume: true }));
     state.currentSongIndex = index;
@@ -232,7 +232,7 @@ function getCurrentSong() {
 
     return {
         ...song,
-        filePath: path.join(MUSIC_FOLDER, `${song.name}.mp3`),
+        filePath: path.join(MUSIC_FOLDER, `${song.name}.opus`),
         index: currentSongIndex,
         totalSongs: playlist.length,
         isPlaying: player?.state?.status === AudioPlayerStatus.Playing,
