@@ -1,7 +1,7 @@
 module.exports = {
     bot: {
         prefix: "!",
-        regex: /https?:\/\/(?:www\.)?(?:tiktok\.com\/(?:@[\w.-]+\/(?:video|photo)\/\d+|t\/[\w-]+)|(?:vm|vt)\.tiktok\.com\/[\w-]+|instagram\.com\/(?:p|reel|tv)\/[\w-]+)\/?(?:[?#]\S*)?/i,
+        regex: /https?:\/\/(?:(?:www\.|m\.)?tiktok\.com\/(?:@[\w.-]+\/(?:video|photo)\/\d+|t\/[\w-]+)|(?:vm|vt)\.tiktok\.com\/[\w-]+|(?:www\.)?instagram\.com\/(?:p|reel|reels|tv|share\/reel)\/[\w-]+|instagr\.am\/(?:p|reel)\/[\w-]+|(?:www\.|m\.)?youtube\.com\/shorts\/[\w-]+)\/?(?:[?#][^\s<>"')\]]*)?/i,
     },
     guildId: "1414414557971087504",
     playLofi: false,
