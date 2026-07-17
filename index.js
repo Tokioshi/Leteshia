@@ -33,6 +33,7 @@ class Bot extends Client {
         this.config = null;
         this.commands = new Collection();
         this.snipes = new Collection();
+        this.pendingSuppress = new Map();
 
         try {
             this.loadConfig();
