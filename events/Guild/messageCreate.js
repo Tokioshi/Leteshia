@@ -137,8 +137,25 @@ module.exports = {
             const randomName = crypto.randomBytes(8).toString("hex");
             const tempFilePath = path.join(TEMP_DIR, `${randomName}.mp4`);
             const compressedFilePath = path.join(TEMP_DIR, `${randomName}_compressed.mp4`);
+            const suppress = message.client.pendingSuppress;
 
             await message.react("⏳");
+
+            const existingTimeout = suppress.get(message.id);
+
+            if (existingTimeout) {
+                clearTimeout(existingTimeout);
+            }
+
+            const timeout = setTimeout(async () => {
+                suppress.delete(message.id);
+
+                try {
+                    await message.suppressEmbeds();
+                } catch {}
+            }, 3000);
+
+            suppress.set(message.id, timeout);
 
             try {
                 await downloadVideo(url, tempFilePath);
