@@ -41,6 +41,18 @@ module.exports = {
                                 .setRequired(false)
                                 .setMaxValues(10),
                         ),
+                )
+                .addLabelComponents(
+                    new LabelBuilder()
+                        .setLabel("Message ID (Reply)")
+                        .setTextInputComponent(
+                            new TextInputBuilder()
+                                .setCustomId("message_id")
+                                .setStyle(TextInputStyle.Short)
+                                .setMinLength(1)
+                                .setMaxLength(50)
+                                .setRequired(false),
+                        ),
                 ),
         );
     },
