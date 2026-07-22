@@ -155,8 +155,9 @@ async function handleModal(interaction) {
 
         const text = interaction.fields.getTextInputValue("text");
         const attachCollection = interaction.fields.getUploadedFiles("attachment");
+        const messageId = interaction.fields.getTextInputValue("message_id");
 
-        if (!text?.trim() && !attachCollection?.size) {
+        if (!text?.trim() && !attachCollection?.size && !messageId?.trim()) {
             return interaction.editReply(
                 "https://tenor.com/view/tertawa-tapi-terluka-tertawa-tapi-terluka-gif-4910619389471646348",
             );
@@ -179,24 +180,42 @@ async function handleModal(interaction) {
                 }
             }
         }
+        try {
+            const messageOptions = {
+                content: text?.trim() || null,
+                files: files.length > 0 ? files : undefined,
+            };
 
-        const messageOptions = {
-            content: text?.trim() || null,
-            files: files.length > 0 ? files : undefined,
-        };
+            if (!messageOptions.content) delete messageOptions.content;
+            if (!messageOptions.files) delete messageOptions.files;
 
-        if (!messageOptions.content) delete messageOptions.content;
-        if (!messageOptions.files) delete messageOptions.files;
+            if (!messageId?.trim()) {
+                await interaction.channel.send(messageOptions);
+            } else {
+                const targetMessage = await interaction.channel.messages.fetch(messageId.trim());
+                await targetMessage.reply(messageOptions);
+            }
 
-        await interaction.channel.send(messageOptions);
-
-        await interaction.editReply({
-            embeds: [
-                new EmbedBuilder()
-                    .setColor("Green")
-                    .setDescription("You've just sent a message as bot!"),
-            ],
-        });
+            await interaction.editReply({
+                embeds: [
+                    new EmbedBuilder()
+                        .setColor("Green")
+                        .setDescription("You've just sent a message as bot!"),
+                ],
+            });
+        } catch (err) {
+            console.error(err);
+            await interaction.editReply({
+                embeds: [
+                    new EmbedBuilder()
+                        .setColor("Red")
+                        .setDescription(
+                            "Failed to send announcement.\n" +
+                                "Please check the message ID (if used) and attachments, then try again.",
+                        ),
+                ],
+            });
+        }
     }
 }
 
